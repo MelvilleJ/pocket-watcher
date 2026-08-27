@@ -1,7 +1,7 @@
 "use server";
 
 import { randomUUID } from "node:crypto";
-import { eq, and } from "drizzle-orm";
+import { eq, and, isNull } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { expenses } from "@/lib/db/schema";
@@ -52,7 +52,7 @@ export async function deleteExpense(id: string) {
   const [existing] = await db
     .select()
     .from(expenses)
-    .where(and(eq(expenses.id, id), eq(expenses.userId, user.id)))
+    .where(and(eq(expenses.id, id), eq(expenses.userId, user.id), isNull(expenses.deletedAt)))
     .limit(1);
 
   if (!existing) return;
@@ -60,7 +60,7 @@ export async function deleteExpense(id: string) {
   await db
     .update(expenses)
     .set({ deletedAt: new Date() })
-    .where(and(eq(expenses.id, id), eq(expenses.userId, user.id)));
+    .where(and(eq(expenses.id, id), eq(expenses.userId, user.id), isNull(expenses.deletedAt)));
 
   await recordAudit({
     userId: user.id,

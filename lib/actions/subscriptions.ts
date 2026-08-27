@@ -1,7 +1,7 @@
 "use server";
 
 import { randomUUID } from "node:crypto";
-import { eq, and } from "drizzle-orm";
+import { eq, and, isNull } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { subscriptions } from "@/lib/db/schema";
@@ -57,7 +57,7 @@ export async function cancelSubscription(id: string) {
   const [existing] = await db
     .select()
     .from(subscriptions)
-    .where(and(eq(subscriptions.id, id), eq(subscriptions.userId, user.id)))
+    .where(and(eq(subscriptions.id, id), eq(subscriptions.userId, user.id), isNull(subscriptions.deletedAt)))
     .limit(1);
 
   if (!existing) return;
@@ -65,7 +65,7 @@ export async function cancelSubscription(id: string) {
   const [updated] = await db
     .update(subscriptions)
     .set({ status: "cancelled", endDate: new Date(), updatedAt: new Date() })
-    .where(and(eq(subscriptions.id, id), eq(subscriptions.userId, user.id)))
+    .where(and(eq(subscriptions.id, id), eq(subscriptions.userId, user.id), isNull(subscriptions.deletedAt)))
     .returning();
 
   await recordAudit({
@@ -87,7 +87,7 @@ export async function deleteSubscription(id: string) {
   const [existing] = await db
     .select()
     .from(subscriptions)
-    .where(and(eq(subscriptions.id, id), eq(subscriptions.userId, user.id)))
+    .where(and(eq(subscriptions.id, id), eq(subscriptions.userId, user.id), isNull(subscriptions.deletedAt)))
     .limit(1);
 
   if (!existing) return;
@@ -95,7 +95,7 @@ export async function deleteSubscription(id: string) {
   await db
     .update(subscriptions)
     .set({ deletedAt: new Date() })
-    .where(and(eq(subscriptions.id, id), eq(subscriptions.userId, user.id)));
+    .where(and(eq(subscriptions.id, id), eq(subscriptions.userId, user.id), isNull(subscriptions.deletedAt)));
 
   await recordAudit({
     userId: user.id,

@@ -16,7 +16,7 @@ export default async function DebtsPage() {
   const user = await requireUser();
   const debts = await getDebtsWithBalances(user.id);
 
-  const payments = await db
+  const paymentRows = await db
     .select()
     .from(debtPayments)
     .where(and(eq(debtPayments.userId, user.id), isNull(debtPayments.deletedAt)))
@@ -24,6 +24,7 @@ export default async function DebtsPage() {
     .limit(100);
 
   const debtNameById = new Map(debts.map((d) => [d.id, d.name]));
+  const payments = paymentRows.filter((payment) => debtNameById.has(payment.debtId));
   const totalBalance = debts.reduce((sum, d) => sum + d.currentBalance, 0);
 
   return (

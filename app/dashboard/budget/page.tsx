@@ -3,6 +3,8 @@ import { ensureDraftBudget, lockBudget, unlockBudget } from "@/lib/actions/budge
 import { getBudgetForPeriod } from "@/lib/queries/budgets";
 import { getBudgetActuals } from "@/lib/queries/summary";
 import { listSubscriptions } from "@/lib/queries/entries";
+import { getDebtsWithBalances } from "@/lib/queries/debts";
+import { listGoalsForUser } from "@/lib/queries/goals";
 import { calcMonthlyCost } from "@/lib/finance/subscriptions";
 import { BudgetLineRow } from "@/components/forms/budget-line-row";
 import { SubscriptionBudgetLineRow } from "@/components/forms/subscription-budget-line-row";
@@ -41,10 +43,15 @@ export default async function BudgetPage({
 
   const incomeLines = lines.filter((l) => l.kind === "income");
   const expenseLines = lines.filter((l) => l.kind === "expense");
-  const debtLines = lines.filter((l) => l.kind === "debt");
-  const goalLines = lines.filter((l) => l.kind === "goal");
-
-  const subscriptions = await listSubscriptions(user.id);
+  const [subscriptions, debts, goals] = await Promise.all([
+    listSubscriptions(user.id),
+    getDebtsWithBalances(user.id),
+    listGoalsForUser(user.id),
+  ]);
+  const activeDebtNames = new Set(debts.map((debt) => debt.name));
+  const activeGoalNames = new Set(goals.map((goal) => goal.name));
+  const debtLines = lines.filter((line) => line.kind === "debt" && activeDebtNames.has(line.label));
+  const goalLines = lines.filter((line) => line.kind === "goal" && activeGoalNames.has(line.label));
   const subscriptionMonthlyCostByName = new Map(
     subscriptions.map((s) => [s.name, calcMonthlyCost(s.billingCycle, Number(s.billedAmount))])
   );
@@ -67,6 +74,8 @@ export default async function BudgetPage({
   const actualSubscriptions = Array.from(subscriptionByName.values()).reduce((s, v) => s + v, 0);
   const actualDebt = Array.from(debtPaymentsByName.values()).reduce((s, v) => s + v, 0);
   const actualGoals = Array.from(goalPaymentsByName.values()).reduce((s, v) => s + v, 0);
+  const totalPlannedExpenses = plannedExpense + plannedSubscriptions;
+  const totalActualExpenses = actualExpense + actualSubscriptions;
 
   return (
     <div className="flex flex-col gap-6">
@@ -137,9 +146,9 @@ export default async function BudgetPage({
           <p className="text-xs text-zinc-500">Actual: {formatCurrency(actualIncome, user.currency)}</p>
         </div>
         <div className="rounded-xl border border-black/10 dark:border-white/10 bg-white dark:bg-zinc-950 px-5 py-4">
-          <p className="text-sm text-zinc-500">Planned expenses</p>
-          <p className="mt-1 text-xl font-semibold tabular-nums">{formatCurrency(plannedExpense, user.currency)}</p>
-          <p className="text-xs text-zinc-500">Actual: {formatCurrency(actualExpense, user.currency)}</p>
+          <p className="text-sm text-zinc-500">Total planned expenses</p>
+          <p className="mt-1 text-xl font-semibold tabular-nums">{formatCurrency(totalPlannedExpenses, user.currency)}</p>
+          <p className="text-xs text-zinc-500">Actual: {formatCurrency(totalActualExpenses, user.currency)}</p>
         </div>
         <div className="rounded-xl border border-black/10 dark:border-white/10 bg-white dark:bg-zinc-950 px-5 py-4">
           <p className="text-sm text-zinc-500">Planned subscriptions</p>

@@ -56,7 +56,10 @@ export async function getYearRawData(userId: string, year: number) {
           lte(expenses.date, yearEnd)
         )
       ),
-    db.select().from(subscriptions).where(eq(subscriptions.userId, userId)),
+    db
+      .select()
+      .from(subscriptions)
+      .where(and(eq(subscriptions.userId, userId), isNull(subscriptions.deletedAt))),
     db
       .select()
       .from(debtPayments)
@@ -186,9 +189,12 @@ export async function getBudgetActuals(userId: string, year: number, monthIndex:
   }
 
   const debtNameById = new Map(
-    (await db.select({ id: debts.id, name: debts.name }).from(debts).where(eq(debts.userId, userId))).map(
-      (d) => [d.id, d.name] as const
-    )
+    (
+      await db
+        .select({ id: debts.id, name: debts.name })
+        .from(debts)
+        .where(and(eq(debts.userId, userId), isNull(debts.deletedAt)))
+    ).map((d) => [d.id, d.name] as const)
   );
   const debtPaymentsByName = new Map<string, number>();
   for (const row of debtPaymentRows) {
@@ -199,9 +205,12 @@ export async function getBudgetActuals(userId: string, year: number, monthIndex:
   }
 
   const goalNameById = new Map(
-    (await db.select({ id: goals.id, name: goals.name }).from(goals).where(eq(goals.userId, userId))).map(
-      (goal) => [goal.id, goal.name] as const
-    )
+    (
+      await db
+        .select({ id: goals.id, name: goals.name })
+        .from(goals)
+        .where(and(eq(goals.userId, userId), isNull(goals.deletedAt)))
+    ).map((goal) => [goal.id, goal.name] as const)
   );
   const goalPaymentsByName = new Map<string, number>();
   for (const row of goalPaymentRows) {

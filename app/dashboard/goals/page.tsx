@@ -16,7 +16,7 @@ function formatCurrency(value: number, currency: string) {
 export default async function GoalsPage() {
   const user = await requireUser();
   const rows = await listGoalsForUser(user.id);
-  const payments = await db
+  const paymentRows = await db
     .select()
     .from(goalPayments)
     .where(and(eq(goalPayments.userId, user.id), isNull(goalPayments.deletedAt)))
@@ -33,6 +33,7 @@ export default async function GoalsPage() {
 
   const minTotal = goals.reduce((s, g) => s + g.minMonthlyContribution, 0);
   const goalNameById = new Map(goals.map((goal) => [goal.id, goal.name]));
+  const payments = paymentRows.filter((payment) => goalNameById.has(payment.goalId));
 
   return (
     <div className="flex flex-col gap-6">

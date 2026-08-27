@@ -1,7 +1,7 @@
 "use server";
 
 import { randomUUID } from "node:crypto";
-import { eq, and } from "drizzle-orm";
+import { eq, and, isNull } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { debts, debtPayments } from "@/lib/db/schema";
@@ -55,7 +55,7 @@ export async function deleteDebt(id: string) {
   const [existing] = await db
     .select()
     .from(debts)
-    .where(and(eq(debts.id, id), eq(debts.userId, user.id)))
+    .where(and(eq(debts.id, id), eq(debts.userId, user.id), isNull(debts.deletedAt)))
     .limit(1);
 
   if (!existing) return;
@@ -63,7 +63,7 @@ export async function deleteDebt(id: string) {
   await db
     .update(debts)
     .set({ deletedAt: new Date() })
-    .where(and(eq(debts.id, id), eq(debts.userId, user.id)));
+    .where(and(eq(debts.id, id), eq(debts.userId, user.id), isNull(debts.deletedAt)));
 
   await recordAudit({
     userId: user.id,
@@ -90,7 +90,7 @@ export async function createDebtPayment(
   const [debt] = await db
     .select({ id: debts.id })
     .from(debts)
-    .where(and(eq(debts.id, parsed.data.debtId), eq(debts.userId, user.id)))
+    .where(and(eq(debts.id, parsed.data.debtId), eq(debts.userId, user.id), isNull(debts.deletedAt)))
     .limit(1);
 
   if (!debt) {
@@ -129,7 +129,7 @@ export async function deleteDebtPayment(id: string) {
   const [existing] = await db
     .select()
     .from(debtPayments)
-    .where(and(eq(debtPayments.id, id), eq(debtPayments.userId, user.id)))
+    .where(and(eq(debtPayments.id, id), eq(debtPayments.userId, user.id), isNull(debtPayments.deletedAt)))
     .limit(1);
 
   if (!existing) return;
@@ -137,7 +137,7 @@ export async function deleteDebtPayment(id: string) {
   await db
     .update(debtPayments)
     .set({ deletedAt: new Date() })
-    .where(and(eq(debtPayments.id, id), eq(debtPayments.userId, user.id)));
+    .where(and(eq(debtPayments.id, id), eq(debtPayments.userId, user.id), isNull(debtPayments.deletedAt)));
 
   await recordAudit({
     userId: user.id,

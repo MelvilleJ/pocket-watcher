@@ -138,7 +138,7 @@ export async function updateGoal(_state: FormState, formData: FormData) {
   const [existing] = await db
     .select()
     .from(goals)
-    .where(and(eq(goals.id, id), eq(goals.userId, user.id)))
+    .where(and(eq(goals.id, id), eq(goals.userId, user.id), isNull(goals.deletedAt)))
     .limit(1);
   if (!existing) return { error: "Goal not found" };
 
@@ -152,7 +152,7 @@ export async function updateGoal(_state: FormState, formData: FormData) {
       notes: parsed.data.notes || null,
       updatedAt: new Date(),
     })
-    .where(and(eq(goals.id, id), eq(goals.userId, user.id)));
+    .where(and(eq(goals.id, id), eq(goals.userId, user.id), isNull(goals.deletedAt)));
 
   await recordAudit({
     userId: user.id,
@@ -172,7 +172,7 @@ export async function deleteGoal(id: string) {
   const [existing] = await db
     .select()
     .from(goals)
-    .where(and(eq(goals.id, id), eq(goals.userId, user.id)))
+    .where(and(eq(goals.id, id), eq(goals.userId, user.id), isNull(goals.deletedAt)))
     .limit(1);
 
   if (!existing) return;
@@ -180,7 +180,7 @@ export async function deleteGoal(id: string) {
   await db
     .update(goals)
     .set({ deletedAt: new Date() })
-    .where(and(eq(goals.id, id), eq(goals.userId, user.id)));
+    .where(and(eq(goals.id, id), eq(goals.userId, user.id), isNull(goals.deletedAt)));
 
   await recordAudit({
     userId: user.id,
