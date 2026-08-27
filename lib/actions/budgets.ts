@@ -9,20 +9,22 @@ import { recordAudit } from "@/lib/audit";
 import { getExpenseCategories, getIncomeSources } from "@/lib/queries/lists";
 import { getDebtsWithBalances } from "@/lib/queries/debts";
 import { listSubscriptions } from "@/lib/queries/entries";
+import { listGoalsForUser } from "@/lib/queries/goals";
 import { calcMonthlyCost } from "@/lib/finance/subscriptions";
 
 type NewBudgetLine = {
   budgetId: string;
-  kind: "income" | "expense" | "debt" | "subscription";
+  kind: "income" | "expense" | "debt" | "goal" | "subscription";
   label: string;
   plannedAmount: string;
 };
 
 async function budgetableLines(userId: string, budgetId: string): Promise<NewBudgetLine[]> {
-  const [categories, sources, debts, subscriptions] = await Promise.all([
+  const [categories, sources, debts, goals, subscriptions] = await Promise.all([
     getExpenseCategories(userId),
     getIncomeSources(userId),
     getDebtsWithBalances(userId),
+    listGoalsForUser(userId),
     listSubscriptions(userId),
   ]);
 
@@ -32,6 +34,14 @@ async function budgetableLines(userId: string, budgetId: string): Promise<NewBud
     ...debts
       .filter((d) => d.currentBalance > 0)
       .map((d) => ({ budgetId, kind: "debt" as const, label: d.name, plannedAmount: "0" })),
+    ...goals
+      .filter((goal) => Number(goal.currentSaved) < Number(goal.targetAmount))
+      .map((goal) => ({
+        budgetId,
+        kind: "goal" as const,
+        label: goal.name,
+        plannedAmount: Number(goal.minMonthlyContribution).toFixed(2),
+      })),
     ...subscriptions
       .filter((s) => s.status === "active")
       .map((s) => ({

@@ -7,6 +7,8 @@ const ENTITY_LABELS: Record<string, string> = {
   subscription: "Subscription",
   debt: "Debt",
   debt_payment: "Debt payment",
+  goal: "Goal",
+  goal_payment: "Goal payment",
   budget: "Budget",
   user: "Profile",
 };

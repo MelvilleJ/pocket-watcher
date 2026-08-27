@@ -1,7 +1,6 @@
 "use client";
 
-import { useState } from "react";
-import { updateBudgetLine } from "@/lib/actions/budgets";
+import { useEffect, useRef, useState } from "react";
 
 export function BudgetLineRow({
   lineId,
@@ -18,11 +17,46 @@ export function BudgetLineRow({
   actual: number;
   currency: string;
   disabled: boolean;
-  kind: "income" | "expense" | "debt" | "subscription";
+  kind: "income" | "expense" | "debt" | "goal" | "subscription";
 }) {
   const [value, setValue] = useState(plannedAmount);
   const variance = actual - value;
   const isGood = kind === "income" ? variance >= 0 : variance <= 0;
+
+  const savingTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
+
+  async function saveNow(amount: number) {
+    if (abortRef.current) abortRef.current.abort();
+    abortRef.current = new AbortController();
+    try {
+      await fetch("/api/budget/line", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ lineId, plannedAmount: amount }),
+        signal: abortRef.current.signal,
+      });
+    } catch (e) {
+      // best-effort autosave; ignore failures
+    }
+  }
+
+  function scheduleSave(next: number) {
+    if (savingTimer.current) clearTimeout(savingTimer.current);
+    savingTimer.current = setTimeout(() => saveNow(next), 5000);
+  }
+
+  useEffect(() => {
+    const handler = () => {
+      if (savingTimer.current) {
+        clearTimeout(savingTimer.current);
+        savingTimer.current = null;
+      }
+      saveNow(value);
+    };
+    window.addEventListener("budget-save-now", handler as EventListener);
+    return () => window.removeEventListener("budget-save-now", handler as EventListener);
+  }, [value]);
 
   return (
     <tr className="border-b border-black/5 dark:border-white/5">
@@ -34,23 +68,20 @@ export function BudgetLineRow({
             {value.toFixed(2)}
           </span>
         ) : (
-          <form action={updateBudgetLine} className="flex items-center justify-end gap-2">
-            <input type="hidden" name="lineId" value={lineId} />
+          <div className="flex items-center justify-end gap-2">
             <input
               type="number"
               step="0.01"
               name="plannedAmount"
               value={value}
-              onChange={(e) => setValue(Number(e.target.value))}
+              onChange={(e) => {
+                const next = Number(e.target.value);
+                setValue(next);
+                scheduleSave(next);
+              }}
               className="w-28 rounded-md border border-black/15 dark:border-white/15 bg-transparent px-2 py-1 text-right text-sm tabular-nums"
             />
-            <button
-              type="submit"
-              className="rounded-md bg-zinc-900 dark:bg-zinc-50 px-2 py-1 text-xs font-medium text-white dark:text-zinc-900"
-            >
-              Save
-            </button>
-          </form>
+          </div>
         )}
       </td>
       <td className="px-4 py-2 text-right tabular-nums">

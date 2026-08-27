@@ -6,6 +6,7 @@ import { listSubscriptions } from "@/lib/queries/entries";
 import { calcMonthlyCost } from "@/lib/finance/subscriptions";
 import { BudgetLineRow } from "@/components/forms/budget-line-row";
 import { SubscriptionBudgetLineRow } from "@/components/forms/subscription-budget-line-row";
+import SaveAllButton from "@/components/save-all-button";
 
 const MONTH_NAMES = [
   "January", "February", "March", "April", "May", "June",
@@ -31,7 +32,7 @@ export default async function BudgetPage({
 
   await ensureDraftBudget(year, month);
   const data = await getBudgetForPeriod(user.id, year, month);
-  const { incomeBySource, expenseByCategory, subscriptionByName, debtPaymentsByName } =
+  const { incomeBySource, expenseByCategory, subscriptionByName, debtPaymentsByName, goalPaymentsByName } =
     await getBudgetActuals(user.id, year, monthIndex);
 
   if (!data) return null;
@@ -41,6 +42,7 @@ export default async function BudgetPage({
   const incomeLines = lines.filter((l) => l.kind === "income");
   const expenseLines = lines.filter((l) => l.kind === "expense");
   const debtLines = lines.filter((l) => l.kind === "debt");
+  const goalLines = lines.filter((l) => l.kind === "goal");
 
   const subscriptions = await listSubscriptions(user.id);
   const subscriptionMonthlyCostByName = new Map(
@@ -59,10 +61,12 @@ export default async function BudgetPage({
   const plannedExpense = expenseLines.reduce((s, l) => s + Number(l.plannedAmount), 0);
   const plannedSubscriptions = subscriptionLines.reduce((s, l) => s + Number(l.plannedAmount), 0);
   const plannedDebt = debtLines.reduce((s, l) => s + Number(l.plannedAmount), 0);
+  const plannedGoals = goalLines.reduce((s, l) => s + Number(l.plannedAmount), 0);
   const actualIncome = Array.from(incomeBySource.values()).reduce((s, v) => s + v, 0);
   const actualExpense = Array.from(expenseByCategory.values()).reduce((s, v) => s + v, 0);
   const actualSubscriptions = Array.from(subscriptionByName.values()).reduce((s, v) => s + v, 0);
   const actualDebt = Array.from(debtPaymentsByName.values()).reduce((s, v) => s + v, 0);
+  const actualGoals = Array.from(goalPaymentsByName.values()).reduce((s, v) => s + v, 0);
 
   return (
     <div className="flex flex-col gap-6">
@@ -102,6 +106,7 @@ export default async function BudgetPage({
             >
               View
             </button>
+            <SaveAllButton />
           </form>
           {isLocked ? (
             <form action={unlockBudget.bind(null, budget.id)}>
@@ -125,7 +130,7 @@ export default async function BudgetPage({
         </div>
       </div>
 
-      <section className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+      <section className="grid grid-cols-2 gap-4 sm:grid-cols-5">
         <div className="rounded-xl border border-black/10 dark:border-white/10 bg-white dark:bg-zinc-950 px-5 py-4">
           <p className="text-sm text-zinc-500">Planned income</p>
           <p className="mt-1 text-xl font-semibold tabular-nums">{formatCurrency(plannedIncome, user.currency)}</p>
@@ -145,6 +150,11 @@ export default async function BudgetPage({
           <p className="text-sm text-zinc-500">Planned debt payments</p>
           <p className="mt-1 text-xl font-semibold tabular-nums">{formatCurrency(plannedDebt, user.currency)}</p>
           <p className="text-xs text-zinc-500">Actual: {formatCurrency(actualDebt, user.currency)}</p>
+        </div>
+        <div className="rounded-xl border border-black/10 dark:border-white/10 bg-white dark:bg-zinc-950 px-5 py-4">
+          <p className="text-sm text-zinc-500">Planned goal payments</p>
+          <p className="mt-1 text-xl font-semibold tabular-nums">{formatCurrency(plannedGoals, user.currency)}</p>
+          <p className="text-xs text-zinc-500">Actual: {formatCurrency(actualGoals, user.currency)}</p>
         </div>
       </section>
 
@@ -183,7 +193,7 @@ export default async function BudgetPage({
           <h2 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">
             Expenses by category
           </h2>
-          <p className="text-xs text-zinc-500">Day-to-day spending only — subscriptions and debt payments are tracked separately below.</p>
+          <p className="text-xs text-zinc-500">Day-to-day spending only — subscriptions, debt payments, and goal payments are tracked separately below.</p>
         </div>
         <table className="w-full text-sm">
           <thead>
@@ -287,6 +297,44 @@ export default async function BudgetPage({
               <tr>
                 <td colSpan={4} className="px-4 py-6 text-center text-zinc-500">
                   No outstanding debts to budget for.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </section>
+
+      <section className="overflow-x-auto rounded-xl border border-black/10 dark:border-white/10 bg-white dark:bg-zinc-950">
+        <div className="border-b border-black/10 dark:border-white/10 px-4 py-3">
+          <h2 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">Goal payments</h2>
+          <p className="text-xs text-zinc-500">Every unfinished goal is added here automatically at its minimum monthly contribution.</p>
+        </div>
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-black/10 dark:border-white/10 text-left text-zinc-500">
+              <th className="px-4 py-3 font-medium">Goal</th>
+              <th className="px-4 py-3 font-medium text-right">Budgeted</th>
+              <th className="px-4 py-3 font-medium text-right">Actual</th>
+              <th className="px-4 py-3 font-medium text-right">Variance</th>
+            </tr>
+          </thead>
+          <tbody>
+            {goalLines.map((line) => (
+              <BudgetLineRow
+                key={line.id}
+                lineId={line.id}
+                label={line.label}
+                plannedAmount={Number(line.plannedAmount)}
+                actual={goalPaymentsByName.get(line.label) ?? 0}
+                currency={user.currency}
+                disabled={isLocked}
+                kind="goal"
+              />
+            ))}
+            {goalLines.length === 0 && (
+              <tr>
+                <td colSpan={4} className="px-4 py-6 text-center text-zinc-500">
+                  No unfinished goals to budget for.
                 </td>
               </tr>
             )}

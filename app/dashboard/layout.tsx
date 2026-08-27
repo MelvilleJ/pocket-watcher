@@ -9,6 +9,7 @@ const NAV_LINKS = [
   { href: "/dashboard/expenses", label: "Expenses" },
   { href: "/dashboard/subscriptions", label: "Subscriptions" },
   { href: "/dashboard/debts", label: "Debts" },
+  { href: "/dashboard/goals", label: "Goals" },
   { href: "/dashboard/debts/roadmap", label: "Debt Roadmap" },
   { href: "/dashboard/audit", label: "History" },
   { href: "/dashboard/settings", label: "Settings" },

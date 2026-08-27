@@ -41,6 +41,7 @@ export const budgetLineKindEnum = pgEnum("budget_line_kind", [
   "income",
   "expense",
   "debt",
+  "goal",
   "subscription",
 ]);
 
@@ -213,6 +214,42 @@ export const budgetsRelations = relations(budgets, ({ many }) => ({
   lines: many(budgetLines),
 }));
 
+export const goals = pgTable("goals", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  targetAmount: numeric("target_amount", { precision: 12, scale: 2 }).notNull(),
+  currentSaved: numeric("current_saved", { precision: 12, scale: 2 }).notNull().default("0"),
+  minMonthlyContribution: numeric("min_monthly_contribution", { precision: 12, scale: 2 }).notNull().default("0"),
+  notes: text("notes"),
+  clientId: uuid("client_id").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  deletedAt: timestamp("deleted_at", { withTimezone: true }),
+}, (t) => [
+  index("goals_user_idx").on(t.userId),
+  uniqueIndex("goals_client_idx").on(t.userId, t.clientId),
+  uniqueIndex("goals_user_name_idx").on(t.userId, t.name),
+]);
+
+export const goalPayments = pgTable("goal_payments", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  goalId: uuid("goal_id").notNull().references(() => goals.id, { onDelete: "cascade" }),
+  date: timestamp("date", { withTimezone: true }).notNull(),
+  description: text("description"),
+  amount: numeric("amount", { precision: 12, scale: 2 }).notNull(),
+  notes: text("notes"),
+  ...syncColumns,
+}, (t) => [
+  index("goal_payments_user_idx").on(t.userId),
+  index("goal_payments_goal_idx").on(t.goalId),
+  uniqueIndex("goal_payments_client_idx").on(t.userId, t.clientId),
+]);
+
+export const goalsRelations = relations(goals, ({ many }) => ({
+  payments: many(goalPayments),
+}));
 export const budgetLinesRelations = relations(budgetLines, ({ one }) => ({
   budget: one(budgets, { fields: [budgetLines.budgetId], references: [budgets.id] }),
 }));
@@ -223,6 +260,7 @@ export const usersRelations = relations(users, ({ many }) => ({
   expenses: many(expenses),
   subscriptions: many(subscriptions),
   debts: many(debts),
+  goals: many(goals),
 }));
 
 export const debtsRelations = relations(debts, ({ many }) => ({
@@ -231,4 +269,8 @@ export const debtsRelations = relations(debts, ({ many }) => ({
 
 export const debtPaymentsRelations = relations(debtPayments, ({ one }) => ({
   debt: one(debts, { fields: [debtPayments.debtId], references: [debts.id] }),
+}));
+
+export const goalPaymentsRelations = relations(goalPayments, ({ one }) => ({
+  goal: one(goals, { fields: [goalPayments.goalId], references: [goals.id] }),
 }));

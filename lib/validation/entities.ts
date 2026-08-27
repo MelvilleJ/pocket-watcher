@@ -58,3 +58,19 @@ export const DebtPaymentSchema = z.object({
 export type FormState =
   | { error: string; fieldErrors?: Record<string, string[]> }
   | undefined;
+
+export const GoalSchema = z.object({
+  name: z.string().min(1, { error: "Name is required." }),
+  targetAmount: amount,
+  currentSaved: amount.optional(),
+  minMonthlyContribution: amount.optional(),
+  notes: z.string().optional(),
+});
+
+export const GoalPaymentSchema = z.object({
+  goalId: z.string().min(1),
+  date: dateStr,
+  description: z.string().optional(),
+  amount: z.coerce.number().positive().max(100_000_000),
+  notes: z.string().optional(),
+});

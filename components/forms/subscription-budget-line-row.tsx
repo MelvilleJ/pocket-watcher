@@ -1,7 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
-import { updateBudgetLine } from "@/lib/actions/budgets";
+import { useState } from "react";
 
 export function SubscriptionBudgetLineRow({
   lineId,
@@ -21,17 +20,23 @@ export function SubscriptionBudgetLineRow({
   disabled: boolean;
 }) {
   const [checked, setChecked] = useState(included);
-  const [pending, startTransition] = useTransition();
+  const [saving, setSaving] = useState(false);
   const variance = actual - (checked ? monthlyCost : 0);
 
-  function onToggle(next: boolean) {
+  async function onToggle(next: boolean) {
     setChecked(next);
-    const formData = new FormData();
-    formData.set("lineId", lineId);
-    formData.set("plannedAmount", next ? monthlyCost.toFixed(2) : "0");
-    startTransition(() => {
-      updateBudgetLine(formData);
-    });
+    setSaving(true);
+    try {
+      await fetch("/api/budget/line", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ lineId, plannedAmount: next ? monthlyCost.toFixed(2) : "0" }),
+      });
+    } catch (e) {
+      // ignore
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
@@ -49,7 +54,7 @@ export function SubscriptionBudgetLineRow({
           <input
             type="checkbox"
             checked={checked}
-            disabled={disabled || pending}
+            disabled={disabled || saving}
             onChange={(e) => onToggle(e.target.checked)}
           />
         </label>

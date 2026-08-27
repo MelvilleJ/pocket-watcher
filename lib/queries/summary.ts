@@ -1,7 +1,7 @@
 import "server-only";
 import { and, eq, gte, isNull, lte } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { debtPayments, debts, expenses, income, subscriptions } from "@/lib/db/schema";
+import { debtPayments, debts, expenses, goalPayments, goals, income, subscriptions } from "@/lib/db/schema";
 import { calcMonthlyCost, isSubscriptionActiveInMonth } from "@/lib/finance/subscriptions";
 
 export type MonthSummary = {
@@ -33,7 +33,7 @@ export async function getYearRawData(userId: string, year: number) {
   const yearStart = new Date(year, 0, 1);
   const yearEnd = new Date(year, 11, 31, 23, 59, 59, 999);
 
-  const [incomeRows, expenseRows, allSubs, debtPaymentRows] = await Promise.all([
+  const [incomeRows, expenseRows, allSubs, debtPaymentRows, goalPaymentRows] = await Promise.all([
     db
       .select()
       .from(income)
@@ -68,9 +68,20 @@ export async function getYearRawData(userId: string, year: number) {
           lte(debtPayments.date, yearEnd)
         )
       ),
+    db
+      .select()
+      .from(goalPayments)
+      .where(
+        and(
+          eq(goalPayments.userId, userId),
+          isNull(goalPayments.deletedAt),
+          gte(goalPayments.date, yearStart),
+          lte(goalPayments.date, yearEnd)
+        )
+      ),
   ]);
 
-  return { incomeRows, expenseRows, allSubs, debtPaymentRows };
+  return { incomeRows, expenseRows, allSubs, debtPaymentRows, goalPaymentRows };
 }
 
 export async function getMonthByMonthSummary(
@@ -150,7 +161,7 @@ export async function getCategoryBreakdown(
 
 export async function getBudgetActuals(userId: string, year: number, monthIndex: number) {
   const { start, end } = monthRange(year, monthIndex);
-  const { incomeRows, expenseRows, allSubs, debtPaymentRows } = await getYearRawData(userId, year);
+  const { incomeRows, expenseRows, allSubs, debtPaymentRows, goalPaymentRows } = await getYearRawData(userId, year);
 
   const incomeBySource = new Map<string, number>();
   for (const row of incomeRows) {
@@ -187,7 +198,20 @@ export async function getBudgetActuals(userId: string, year: number, monthIndex:
     debtPaymentsByName.set(name, (debtPaymentsByName.get(name) ?? 0) + num(row.amount));
   }
 
-  return { incomeBySource, expenseByCategory, subscriptionByName, debtPaymentsByName };
+  const goalNameById = new Map(
+    (await db.select({ id: goals.id, name: goals.name }).from(goals).where(eq(goals.userId, userId))).map(
+      (goal) => [goal.id, goal.name] as const
+    )
+  );
+  const goalPaymentsByName = new Map<string, number>();
+  for (const row of goalPaymentRows) {
+    if (row.date < start || row.date > end) continue;
+    const name = goalNameById.get(row.goalId);
+    if (!name) continue;
+    goalPaymentsByName.set(name, (goalPaymentsByName.get(name) ?? 0) + num(row.amount));
+  }
+
+  return { incomeBySource, expenseByCategory, subscriptionByName, debtPaymentsByName, goalPaymentsByName };
 }
 
 export async function getMoneyInOutSummary(userId: string, year: number, monthIndex: number) {
