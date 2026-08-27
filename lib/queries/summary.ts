@@ -1,5 +1,5 @@
 import "server-only";
-import { and, eq, gte, isNull, lte } from "drizzle-orm";
+import { and, eq, gte, isNull, like, lte, or } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { debtPayments, debts, expenses, goalPayments, goals, income, subscriptions } from "@/lib/db/schema";
 import { calcMonthlyCost, isSubscriptionActiveInMonth } from "@/lib/finance/subscriptions";
@@ -29,6 +29,18 @@ function monthRange(year: number, monthIndex: number) {
   return { start, end };
 }
 
+function monthKey(date: Date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function incomeAppliesInMonth(
+  row: { date: Date; appliedMonth: string | null },
+  start: Date,
+  end: Date
+) {
+  return row.appliedMonth ? row.appliedMonth === monthKey(start) : row.date >= start && row.date <= end;
+}
+
 export async function getYearRawData(userId: string, year: number) {
   const yearStart = new Date(year, 0, 1);
   const yearEnd = new Date(year, 11, 31, 23, 59, 59, 999);
@@ -41,8 +53,10 @@ export async function getYearRawData(userId: string, year: number) {
         and(
           eq(income.userId, userId),
           isNull(income.deletedAt),
-          gte(income.date, yearStart),
-          lte(income.date, yearEnd)
+          or(
+            and(gte(income.date, yearStart), lte(income.date, yearEnd)),
+            like(income.appliedMonth, `${year}-%`)
+          )
         )
       ),
     db
@@ -103,7 +117,7 @@ export async function getMonthByMonthSummary(
     const { start, end } = monthRange(year, m);
 
     const monthIncome = incomeRows
-      .filter((r) => r.date >= start && r.date <= end)
+      .filter((r) => incomeAppliesInMonth(r, start, end))
       .reduce((sum, r) => sum + num(r.amount), 0);
 
     const monthExpenses = expenseRows
@@ -168,7 +182,7 @@ export async function getBudgetActuals(userId: string, year: number, monthIndex:
 
   const incomeBySource = new Map<string, number>();
   for (const row of incomeRows) {
-    if (row.date < start || row.date > end) continue;
+    if (!incomeAppliesInMonth(row, start, end)) continue;
     incomeBySource.set(row.sourceName, (incomeBySource.get(row.sourceName) ?? 0) + num(row.amount));
   }
 

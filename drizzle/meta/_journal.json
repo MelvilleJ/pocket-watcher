@@ -43,6 +43,13 @@
       "when": 1787871983323,
       "tag": "0005_add_goal_budget_line_kind",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1787874775404,
+      "tag": "0006_add_income_applied_month",
+      "breakpoints": true
     }
   ]
 }

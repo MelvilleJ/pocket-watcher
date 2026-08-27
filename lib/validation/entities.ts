@@ -5,6 +5,7 @@ const dateStr = z.string().min(1, { error: "Date is required." });
 
 export const IncomeSchema = z.object({
   date: dateStr,
+  appliedMonth: z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/, { error: "Select the month this income applies to." }),
   sourceName: z.string().min(1, { error: "Source is required." }),
   description: z.string().optional(),
   amount,

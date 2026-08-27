@@ -189,6 +189,7 @@ export async function POST(request: NextRequest) {
         userId,
         clientId: rec.clientId,
         date: new Date(rec.date),
+        appliedMonth: rec.appliedMonth ?? null,
         sourceName: rec.sourceName,
         description: rec.description ?? null,
         amount: rec.amount.toFixed(2),
@@ -200,6 +201,7 @@ export async function POST(request: NextRequest) {
         target: [income.userId, income.clientId],
         set: {
           date: new Date(rec.date),
+          ...(rec.appliedMonth !== undefined ? { appliedMonth: rec.appliedMonth } : {}),
           sourceName: rec.sourceName,
           description: rec.description ?? null,
           amount: rec.amount.toFixed(2),

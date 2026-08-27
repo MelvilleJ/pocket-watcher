@@ -8,6 +8,7 @@ const base = {
 export const SyncIncomeSchema = z.object({
   ...base,
   date: z.string(),
+  appliedMonth: z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/).nullable().optional(),
   sourceName: z.string(),
   description: z.string().nullable().optional(),
   amount: z.number(),

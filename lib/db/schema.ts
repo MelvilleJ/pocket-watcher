@@ -110,6 +110,7 @@ export const income = pgTable("income", {
   id: uuid("id").defaultRandom().primaryKey(),
   userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   date: timestamp("date", { withTimezone: true }).notNull(),
+  appliedMonth: text("applied_month"),
   sourceId: uuid("source_id").references(() => incomeSources.id, { onDelete: "set null" }),
   sourceName: text("source_name").notNull(),
   description: text("description"),
@@ -118,6 +119,7 @@ export const income = pgTable("income", {
   ...syncColumns,
 }, (t) => [
   index("income_user_date_idx").on(t.userId, t.date),
+  index("income_user_applied_month_idx").on(t.userId, t.appliedMonth),
   uniqueIndex("income_client_idx").on(t.userId, t.clientId),
 ]);
 

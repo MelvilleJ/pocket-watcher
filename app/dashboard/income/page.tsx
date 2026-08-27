@@ -30,7 +30,8 @@ export default async function IncomePage() {
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-black/10 dark:border-white/10 text-left text-zinc-500">
-              <th className="px-4 py-3 font-medium">Date</th>
+              <th className="px-4 py-3 font-medium">Received</th>
+              <th className="px-4 py-3 font-medium">Applied to</th>
               <th className="px-4 py-3 font-medium">Source</th>
               <th className="px-4 py-3 font-medium">Description</th>
               <th className="px-4 py-3 font-medium text-right">Amount</th>
@@ -41,6 +42,7 @@ export default async function IncomePage() {
             {rows.map((row) => (
               <tr key={row.id} className="border-b border-black/5 dark:border-white/5">
                 <td className="px-4 py-2">{row.date.toISOString().slice(0, 10)}</td>
+                <td className="px-4 py-2">{row.appliedMonth ?? row.date.toISOString().slice(0, 7)}</td>
                 <td className="px-4 py-2">{row.sourceName}</td>
                 <td className="px-4 py-2 text-zinc-500">{row.description}</td>
                 <td className="px-4 py-2 text-right tabular-nums">
@@ -53,7 +55,7 @@ export default async function IncomePage() {
             ))}
             {rows.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-4 py-6 text-center text-zinc-500">
+                <td colSpan={6} className="px-4 py-6 text-center text-zinc-500">
                   No income logged yet.
                 </td>
               </tr>

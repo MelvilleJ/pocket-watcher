@@ -25,6 +25,7 @@ export async function createIncome(
       userId: user.id,
       clientId: randomUUID(),
       date: new Date(parsed.data.date),
+      appliedMonth: parsed.data.appliedMonth,
       sourceName: parsed.data.sourceName,
       description: parsed.data.description || null,
       amount: parsed.data.amount.toFixed(2),
@@ -41,6 +42,7 @@ export async function createIncome(
   });
 
   revalidatePath("/dashboard/income");
+  revalidatePath("/dashboard/budget");
   revalidatePath("/dashboard");
 }
 

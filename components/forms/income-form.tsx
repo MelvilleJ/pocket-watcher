@@ -1,18 +1,44 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { createIncome } from "@/lib/actions/income";
+
+function appliedMonthFor(receivedDate: string) {
+  const date = new Date(`${receivedDate}T00:00:00`);
+  const isLastDay = date.getDate() === new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
+  if (isLastDay) date.setMonth(date.getMonth() + 1, 1);
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+}
 
 export function IncomeForm({ sources }: { sources: { id: string; name: string }[] }) {
   const [state, action, pending] = useActionState(createIncome, undefined);
+  const today = new Date().toISOString().slice(0, 10);
+  const [receivedDate, setReceivedDate] = useState(today);
+  const [appliedMonth, setAppliedMonth] = useState(() => appliedMonthFor(today));
 
   return (
-    <form action={action} className="grid grid-cols-2 gap-3 sm:grid-cols-5">
+    <form action={action} className="grid grid-cols-2 gap-3 sm:grid-cols-6">
       <input
         type="date"
         name="date"
         required
-        defaultValue={new Date().toISOString().slice(0, 10)}
+        value={receivedDate}
+        onChange={(event) => {
+          setReceivedDate(event.target.value);
+          setAppliedMonth(appliedMonthFor(event.target.value));
+        }}
+        aria-label="Received on"
+        title="Received on"
+        className="rounded-md border border-black/15 dark:border-white/15 bg-transparent px-3 py-2 text-sm"
+      />
+      <input
+        type="month"
+        name="appliedMonth"
+        required
+        value={appliedMonth}
+        onChange={(event) => setAppliedMonth(event.target.value)}
+        aria-label="Apply to month"
+        title="Apply to month"
         className="rounded-md border border-black/15 dark:border-white/15 bg-transparent px-3 py-2 text-sm"
       />
       <input
