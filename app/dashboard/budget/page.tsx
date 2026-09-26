@@ -91,32 +91,7 @@ export default async function BudgetPage({
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <form className="flex items-center gap-2 text-sm" action="/dashboard/budget">
-            <select
-              name="month"
-              defaultValue={monthIndex}
-              className="rounded-md border border-black/15 dark:border-white/15 bg-transparent px-2 py-1.5"
-            >
-              {MONTH_NAMES.map((m, i) => (
-                <option key={m} value={i}>
-                  {m}
-                </option>
-              ))}
-            </select>
-            <input
-              name="year"
-              type="number"
-              defaultValue={year}
-              className="w-24 rounded-md border border-black/15 dark:border-white/15 bg-transparent px-2 py-1.5"
-            />
-            <button
-              type="submit"
-              className="rounded-md bg-zinc-900 dark:bg-zinc-50 px-3 py-1.5 text-white dark:text-zinc-900"
-            >
-              View
-            </button>
-            <SaveAllButton />
-          </form>
+          <SaveAllButton />
           {isLocked ? (
             <form action={unlockBudget.bind(null, budget.id)}>
               <button

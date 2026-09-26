@@ -1,6 +1,7 @@
 import { requireUser } from "@/lib/auth/dal";
 import { listSessions } from "@/lib/queries/audit";
 import { SettingsForm } from "@/components/forms/settings-form";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { revokeSession } from "@/lib/actions/settings";
 
 export default async function SettingsPage() {
@@ -23,6 +24,11 @@ export default async function SettingsPage() {
           currency={user.currency}
           savingsRate={Number(user.savingsRate)}
         />
+      </section>
+
+      <section className="rounded-xl border border-black/10 bg-white p-5 dark:border-white/10 dark:bg-zinc-950">
+        <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Appearance</h2>
+        <ThemeToggle />
       </section>
 
       <section className="overflow-x-auto rounded-xl border border-black/10 dark:border-white/10 bg-white dark:bg-zinc-950">

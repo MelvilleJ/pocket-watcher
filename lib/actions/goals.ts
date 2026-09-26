@@ -8,6 +8,7 @@ import { goalPayments, goals } from "@/lib/db/schema";
 import { requireUser } from "@/lib/auth/dal";
 import { recordAudit } from "@/lib/audit";
 import { GoalPaymentSchema, GoalSchema, type FormState } from "@/lib/validation/entities";
+import { parseLocalDate } from "@/lib/utils/date";
 
 export async function createGoal(_state: FormState, formData: FormData) {
   const user = await requireUser();
@@ -64,7 +65,7 @@ export async function createGoalPayment(_state: FormState, formData: FormData): 
         userId: user.id,
         goalId: parsed.data.goalId,
         clientId: randomUUID(),
-        date: new Date(parsed.data.date),
+        date: parseLocalDate(parsed.data.date),
         description: parsed.data.description || null,
         amount,
         notes: parsed.data.notes || null,

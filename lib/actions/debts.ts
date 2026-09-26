@@ -8,6 +8,7 @@ import { debts, debtPayments } from "@/lib/db/schema";
 import { requireUser } from "@/lib/auth/dal";
 import { recordAudit } from "@/lib/audit";
 import { DebtSchema, DebtPaymentSchema, type FormState } from "@/lib/validation/entities";
+import { parseLocalDate } from "@/lib/utils/date";
 import { syncBudgetLinesForUser } from "@/lib/actions/budgets";
 
 export async function createDebt(
@@ -103,7 +104,7 @@ export async function createDebtPayment(
       userId: user.id,
       debtId: parsed.data.debtId,
       clientId: randomUUID(),
-      date: new Date(parsed.data.date),
+      date: parseLocalDate(parsed.data.date),
       description: parsed.data.description || null,
       amount: parsed.data.amount.toFixed(2),
       notes: parsed.data.notes || null,

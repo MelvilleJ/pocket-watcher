@@ -8,6 +8,7 @@ import { income } from "@/lib/db/schema";
 import { requireUser } from "@/lib/auth/dal";
 import { recordAudit } from "@/lib/audit";
 import { IncomeSchema, type FormState } from "@/lib/validation/entities";
+import { parseLocalDate } from "@/lib/utils/date";
 
 export async function createIncome(
   _state: FormState,
@@ -24,7 +25,7 @@ export async function createIncome(
     .values({
       userId: user.id,
       clientId: randomUUID(),
-      date: new Date(parsed.data.date),
+      date: parseLocalDate(parsed.data.date),
       appliedMonth: parsed.data.appliedMonth,
       sourceName: parsed.data.sourceName,
       description: parsed.data.description || null,

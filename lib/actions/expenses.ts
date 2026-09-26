@@ -8,6 +8,7 @@ import { expenses } from "@/lib/db/schema";
 import { requireUser } from "@/lib/auth/dal";
 import { recordAudit } from "@/lib/audit";
 import { ExpenseSchema, type FormState } from "@/lib/validation/entities";
+import { parseLocalDate } from "@/lib/utils/date";
 
 export async function createExpense(
   _state: FormState,
@@ -25,7 +26,7 @@ export async function createExpense(
     .values({
       userId: user.id,
       clientId: randomUUID(),
-      date: new Date(parsed.data.date),
+      date: parseLocalDate(parsed.data.date),
       categoryName: parsed.data.categoryName,
       description: parsed.data.description || null,
       amount: parsed.data.amount.toFixed(2),

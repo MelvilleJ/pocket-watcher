@@ -63,31 +63,6 @@ export default async function SummaryPage({
             Everything here is calculated from your Income, Expenses, Subscriptions, and Debts logs.
           </p>
         </div>
-        <form className="flex items-center gap-2 text-sm" action="/dashboard">
-          <select
-            name="month"
-            defaultValue={monthIndex}
-            className="rounded-md border border-black/15 dark:border-white/15 bg-transparent px-2 py-1.5"
-          >
-            {MONTH_NAMES.map((m, i) => (
-              <option key={m} value={i}>
-                {m}
-              </option>
-            ))}
-          </select>
-          <input
-            name="year"
-            type="number"
-            defaultValue={year}
-            className="w-24 rounded-md border border-black/15 dark:border-white/15 bg-transparent px-2 py-1.5"
-          />
-          <button
-            type="submit"
-            className="rounded-md bg-zinc-900 dark:bg-zinc-50 px-3 py-1.5 text-white dark:text-zinc-900"
-          >
-            View
-          </button>
-        </form>
       </div>
 
       <section className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
