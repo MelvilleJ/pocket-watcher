@@ -38,7 +38,7 @@ export function AuthShell({
       <section className="relative hidden w-[46%] flex-col justify-between p-12 lg:flex xl:p-16">
         <div className="flex items-center gap-3">
           <BrandMark className="h-11 w-11" />
-          <span className="text-lg font-bold tracking-[-0.03em] text-slate-900">Pocket Watcher</span>
+          <span className="text-lg font-bold tracking-[-0.03em] text-[color:var(--foreground)]">Pocket Watcher</span>
         </div>
 
         <motion.div
@@ -48,15 +48,15 @@ export function AuthShell({
           className="max-w-lg"
         >
           <span className="auth-pill">Money clarity, every day</span>
-          <h2 className="mt-6 text-5xl font-bold leading-[1.04] tracking-[-0.055em] text-slate-950 xl:text-6xl">
+          <h2 className="mt-6 text-5xl font-bold leading-[1.04] tracking-[-0.055em] text-[color:var(--foreground)] xl:text-6xl">
             Watch your money move with confidence.
           </h2>
-          <p className="mt-6 max-w-md text-lg leading-8 text-slate-600">
+          <p className="mt-6 max-w-md text-lg leading-8 text-[color:var(--muted)]">
             A calmer, clearer home for budgets, spending, savings goals, and the road to debt-free.
           </p>
         </motion.div>
 
-        <div className="flex gap-6 text-sm font-medium text-slate-500">
+        <div className="flex gap-6 text-sm font-medium text-[color:var(--muted-soft)]">
           <span>Plan simply</span>
           <span>Track clearly</span>
           <span>Grow steadily</span>
@@ -72,11 +72,11 @@ export function AuthShell({
         >
           <div className="mb-9 flex items-center gap-3 lg:hidden">
             <BrandMark className="h-11 w-11" />
-            <span className="text-lg font-bold tracking-[-0.03em] text-slate-900">Pocket Watcher</span>
+            <span className="text-lg font-bold tracking-[-0.03em] text-[color:var(--foreground)]">Pocket Watcher</span>
           </div>
-          <p className="text-xs font-bold uppercase tracking-[0.2em] text-[color:var(--primary)]">{eyebrow}</p>
-          <h1 className="mt-3 text-3xl font-bold tracking-[-0.045em] text-slate-950">{title}</h1>
-          <p className="mt-3 text-sm leading-6 text-slate-500">{description}</p>
+          <p className="text-xs font-bold uppercase tracking-[0.18em] text-[color:var(--primary)]">{eyebrow}</p>
+          <h1 className="mt-3 text-3xl font-bold tracking-[-0.045em] text-[color:var(--foreground)]">{title}</h1>
+          <p className="mt-3 text-sm leading-6 text-[color:var(--muted)]">{description}</p>
           {children}
         </motion.div>
       </div>

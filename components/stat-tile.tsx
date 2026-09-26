@@ -1,23 +1,38 @@
+import type { ReactNode } from "react";
+
 export function StatTile({
   label,
   value,
   tone = "neutral",
+  icon,
+  accent,
 }: {
   label: string;
   value: string;
   tone?: "neutral" | "good" | "critical";
+  icon?: ReactNode;
+  accent?: string;
 }) {
   const toneClass =
     tone === "good"
       ? "text-[color:var(--status-good)]"
       : tone === "critical"
         ? "text-[color:var(--status-critical)]"
-        : "text-zinc-900 dark:text-zinc-50";
+        : "text-[color:var(--foreground)]";
 
   return (
-    <div data-stat-tile className="stat-tile rounded-xl border border-black/10 dark:border-white/10 bg-white dark:bg-zinc-950 px-5 py-4">
-      <p className="text-sm text-zinc-500 dark:text-zinc-400">{label}</p>
-      <p className={`mt-1 text-2xl font-semibold tabular-nums ${toneClass}`}>{value}</p>
+    <div data-stat-tile className="stat-tile p-5">
+      {icon && (
+        <span
+          className="stat-tile-icon"
+          aria-hidden="true"
+          style={accent ? { color: accent, background: `color-mix(in srgb, ${accent} 13%, var(--surface-inset))` } : undefined}
+        >
+          {icon}
+        </span>
+      )}
+      <p>{label}</p>
+      <p className={`mt-2 ${toneClass}`}>{value}</p>
     </div>
   );
 }

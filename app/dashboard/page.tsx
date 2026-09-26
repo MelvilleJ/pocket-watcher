@@ -15,6 +15,31 @@ function formatCurrency(value: number, currency: string) {
   return `${currency}${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
+function TileIcon({ path }: { path: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.7"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d={path} />
+    </svg>
+  );
+}
+
+function SectionHeader({ title, subtitle }: { title: string; subtitle?: string }) {
+  return (
+    <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 border-b border-[color:var(--border)] px-5 py-3.5">
+      <h2 className="text-sm font-semibold tracking-tight text-[color:var(--foreground)]">{title}</h2>
+      {subtitle && <span className="text-xs font-medium text-[color:var(--muted-soft)]">{subtitle}</span>}
+    </div>
+  );
+}
+
 export default async function SummaryPage({
   searchParams,
 }: {
@@ -52,98 +77,120 @@ export default async function SummaryPage({
     .filter((c) => c.month > 0)
     .map((c) => ({ category: c.category, value: c.month }));
 
+  const ytdRows: { label: string; value: number; strong?: boolean; positive?: boolean }[] = [
+    { label: "Income", value: ytd.income },
+    { label: "Expenses", value: ytd.expenses },
+    { label: "Subscriptions", value: ytd.subscriptions },
+    { label: "Debt payments", value: ytd.debtPayments },
+  ];
+
   return (
-    <div className="flex flex-col gap-8">
+    <div className="flex flex-col gap-5">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">
+          <h1 className="text-[26px] font-bold tracking-[-0.02em] text-[color:var(--foreground)]">
             {MONTH_NAMES[monthIndex]} {year}
           </h1>
-          <p className="text-sm text-zinc-500 dark:text-zinc-400">
+          <p className="mt-1 text-sm text-[color:var(--muted)]">
             Everything here is calculated from your Income, Expenses, Subscriptions, and Debts logs.
           </p>
         </div>
       </div>
 
-      <section className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
-        <StatTile label="Income (month)" value={formatCurrency(selected.income, user.currency)} />
-        <StatTile label="Total money out" value={formatCurrency(selected.totalOut, user.currency)} />
+      <section className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+        <StatTile
+          label="Income"
+          value={formatCurrency(selected.income, user.currency)}
+          accent="var(--status-good)"
+          icon={<TileIcon path="M12 4v14m0 0 5-5m-5 5-5-5M5 21h14" />}
+        />
+        <StatTile
+          label="Money out"
+          value={formatCurrency(selected.totalOut, user.currency)}
+          accent="var(--status-critical)"
+          icon={<TileIcon path="M12 20V6m0 0-5 5m5-5 5 5M5 3h14" />}
+        />
         <StatTile
           label="Net"
           value={formatCurrency(net, user.currency)}
           tone={net >= 0 ? "good" : "critical"}
+          accent={net >= 0 ? "var(--status-good)" : "var(--status-critical)"}
+          icon={<TileIcon path="M3 16.5 9.5 10l3.5 3.5L21 6m0 0h-5.5M21 6v5.5" />}
         />
-        <StatTile label="Savings" value={formatCurrency(savings, user.currency)} />
-        <StatTile label="Fun money" value={formatCurrency(funMoney, user.currency)} />
+        <StatTile
+          label="Savings"
+          value={formatCurrency(savings, user.currency)}
+          accent="var(--primary)"
+          icon={<TileIcon path="M12 3v18M17 6.5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />}
+        />
+        <StatTile
+          label="Fun money"
+          value={formatCurrency(funMoney, user.currency)}
+          accent="var(--aqua)"
+          icon={<TileIcon path="M12 3.5 13.9 9l5.6 1.9-5.6 1.9L12 18.5l-1.9-5.7-5.6-1.9L10.1 9 12 3.5ZM5 4.5v3M3.5 6h3M18.5 15.5v3M17 17h3" />}
+        />
         <StatTile
           label="Outstanding debt"
           value={formatCurrency(outstandingDebt, user.currency)}
           tone={outstandingDebt > 0 ? "critical" : "good"}
+          accent="var(--status-critical)"
+          icon={<TileIcon path="M12 3.5a8.5 8.5 0 1 0 0 17 8.5 8.5 0 0 0 0-17ZM12 7.5v5.5M12 16.5h.01" />}
         />
       </section>
 
-      <section className="rounded-xl border border-black/10 dark:border-white/10 bg-white dark:bg-zinc-950 p-5">
-        <h2 className="text-base font-semibold text-zinc-900 dark:text-zinc-50">
-          {year} money in / money out, by month
-        </h2>
-        <div className="mt-4">
+      <section>
+        <SectionHeader title={`${year} money in / money out`} subtitle="Month by month" />
+        <div className="p-5">
           <MoneyFlowChart data={chartData} currency={user.currency} />
         </div>
       </section>
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <section className="rounded-xl border border-black/10 dark:border-white/10 bg-white dark:bg-zinc-950 p-5">
-          <h2 className="text-base font-semibold text-zinc-900 dark:text-zinc-50">
-            Expenses by category — {MONTH_NAMES[monthIndex]}
-          </h2>
-          {categoryChartData.length > 0 ? (
-            <div className="mt-4">
+      <div className="grid gap-4 lg:grid-cols-2">
+        <section>
+          <SectionHeader title="Expenses by category" subtitle={MONTH_NAMES[monthIndex]} />
+          <div className="p-5">
+            {categoryChartData.length > 0 ? (
               <CategoryBreakdownChart data={categoryChartData} currency={user.currency} />
-            </div>
-          ) : (
-            <p className="mt-4 text-sm text-zinc-500">No expenses logged this month yet.</p>
-          )}
+            ) : (
+              <p className="text-sm text-[color:var(--muted)]">No expenses logged this month yet.</p>
+            )}
+          </div>
         </section>
 
-        <section className="rounded-xl border border-black/10 dark:border-white/10 bg-white dark:bg-zinc-950 p-5">
-          <h2 className="text-base font-semibold text-zinc-900 dark:text-zinc-50">
-            Year to date
-          </h2>
-          <dl className="mt-4 flex flex-col gap-2 text-sm">
-            <div className="flex justify-between border-b border-black/5 dark:border-white/5 pb-2">
-              <dt className="text-zinc-500">Income</dt>
-              <dd className="tabular-nums">{formatCurrency(ytd.income, user.currency)}</dd>
+        <section>
+          <SectionHeader title="Year to date" subtitle={String(year)} />
+          <div className="flex h-full flex-col">
+            <dl className="flex flex-col">
+              {ytdRows.map((row) => (
+                <div
+                  key={row.label}
+                  className="flex items-center justify-between border-b border-[color:var(--border)] px-5 py-2.5 text-sm"
+                >
+                  <dt className="text-[color:var(--muted)]">{row.label}</dt>
+                  <dd className="font-medium tabular-nums text-[color:var(--foreground)]">
+                    {formatCurrency(row.value, user.currency)}
+                  </dd>
+                </div>
+              ))}
+              <div className="flex items-center justify-between px-5 py-3">
+                <dt className="text-sm font-semibold text-[color:var(--foreground)]">Net</dt>
+                <dd
+                  className={`text-[15px] font-bold tabular-nums ${
+                    ytd.net >= 0 ? "text-[color:var(--status-good)]" : "text-[color:var(--status-critical)]"
+                  }`}
+                >
+                  {formatCurrency(ytd.net, user.currency)}
+                </dd>
+              </div>
+            </dl>
+            <div className="mt-auto flex flex-col gap-2 px-5 pb-5 pt-4">
+              <Link href="/dashboard/budget" className="text-sm font-medium text-[color:var(--primary-deep)] underline decoration-[color:var(--border-strong)] underline-offset-4 hover:decoration-current">
+                Plan next month&apos;s budget →
+              </Link>
+              <Link href="/dashboard/debts/roadmap" className="text-sm font-medium text-[color:var(--primary-deep)] underline decoration-[color:var(--border-strong)] underline-offset-4 hover:decoration-current">
+                Plan your debt payoff roadmap →
+              </Link>
             </div>
-            <div className="flex justify-between border-b border-black/5 dark:border-white/5 pb-2">
-              <dt className="text-zinc-500">Expenses</dt>
-              <dd className="tabular-nums">{formatCurrency(ytd.expenses, user.currency)}</dd>
-            </div>
-            <div className="flex justify-between border-b border-black/5 dark:border-white/5 pb-2">
-              <dt className="text-zinc-500">Subscriptions</dt>
-              <dd className="tabular-nums">{formatCurrency(ytd.subscriptions, user.currency)}</dd>
-            </div>
-            <div className="flex justify-between border-b border-black/5 dark:border-white/5 pb-2">
-              <dt className="text-zinc-500">Debt payments</dt>
-              <dd className="tabular-nums">{formatCurrency(ytd.debtPayments, user.currency)}</dd>
-            </div>
-            <div className="flex justify-between pt-1 font-medium">
-              <dt>Net</dt>
-              <dd className="tabular-nums">{formatCurrency(ytd.net, user.currency)}</dd>
-            </div>
-          </dl>
-          <div className="mt-4 flex flex-col gap-1">
-            <Link
-              href="/dashboard/budget"
-              className="text-sm font-medium text-zinc-900 dark:text-zinc-50 underline"
-            >
-              Plan next month&apos;s budget →
-            </Link>
-            <Link
-              href="/dashboard/debts/roadmap"
-              className="text-sm font-medium text-zinc-900 dark:text-zinc-50 underline"
-            >
-              Plan your debt payoff roadmap →
-            </Link>
           </div>
         </section>
       </div>

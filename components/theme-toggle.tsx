@@ -43,7 +43,7 @@ export function ThemeToggle() {
   }
 
   return (
-    <div className="flex items-center justify-between gap-6 rounded-2xl border border-slate-200/80 bg-slate-50/70 p-4 dark:border-white/10 dark:bg-white/[0.035]">
+    <div className="flex items-center justify-between gap-6 rounded-xl border border-[color:var(--border)] bg-[color:var(--surface-soft)] p-4">
       <div className="flex items-center gap-3">
         <div className="theme-icon flex h-10 w-10 shrink-0 items-center justify-center rounded-xl" aria-hidden="true">
           {dark ? (
@@ -58,8 +58,8 @@ export function ThemeToggle() {
           )}
         </div>
         <div>
-          <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">Dark mode</p>
-          <p className="mt-0.5 text-xs leading-5 text-slate-500 dark:text-slate-400">
+          <p className="text-sm font-semibold text-[color:var(--foreground)]">Dark mode</p>
+          <p className="mt-0.5 text-xs leading-5 text-[color:var(--muted)]">
             Use a darker palette throughout Pocket Watcher.
           </p>
         </div>
@@ -72,7 +72,7 @@ export function ThemeToggle() {
         aria-label="Toggle dark mode"
         onClick={toggleTheme}
         className="relative h-7 w-12 shrink-0 rounded-full p-1"
-        animate={{ backgroundColor: dark ? "#756ce6" : "#d8dceb" }}
+        animate={{ backgroundColor: dark ? "#5b54e0" : "#d8dceb" }}
         whileTap={reduceMotion ? undefined : { scale: 0.94 }}
         transition={{ duration: reduceMotion ? 0 : 0.2 }}
       >
