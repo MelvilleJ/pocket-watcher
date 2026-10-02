@@ -1,27 +1,18 @@
 export function BrandMark({ className = "h-10 w-10" }: { className?: string }) {
   return (
-    <span
-      className={`brand-mark inline-flex shrink-0 items-center justify-center rounded-2xl ${className}`}
+    <svg
+      viewBox="138 142 238 216"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      className={`shrink-0 text-[color:var(--foreground)] ${className}`}
       aria-hidden="true"
     >
-      <svg viewBox="0 0 40 40" fill="none" className="h-full w-full p-2.5">
-        <path
-          d="M10.5 13.5h19v13a4 4 0 0 1-4 4h-11a4 4 0 0 1-4-4v-13Z"
-          stroke="currentColor"
-          strokeWidth="2.6"
-          strokeLinejoin="round"
-        />
-        <path
-          d="M14 13.5v-1a4 4 0 0 1 4-4h8"
-          stroke="currentColor"
-          strokeWidth="2.6"
-          strokeLinecap="round"
-        />
-        <path
-          d="M24.5 20.25h5v5h-5a2.5 2.5 0 0 1 0-5Z"
-          fill="currentColor"
-        />
-      </svg>
-    </span>
+      <path
+        fill="currentColor"
+        fillRule="evenodd"
+        d="M374 230L339 230L304 300L271 246L236 299L210 254L177 254L231 357L270 300L309 357Z M247 145L235 142L138 142L138 308L167 329L168 246L240 244L259 235L270 224L276 213L279 201L279 185L276 174L268 160L261 153Z M250 187L248 205L235 218L229 220L169 220L167 218L168 168L229 167L240 172Z"
+      />
+      <path fill="#45B97C" d="M239 187L234 180L224 178L178 191L177 210L229 209L239 199Z" />
+    </svg>
   );
 }

@@ -1,11 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { useEffect, useState, type ReactNode } from "react";
+import { motion, useReducedMotion } from "framer-motion";
+import type { ReactNode } from "react";
 import { usePathname } from "next/navigation";
 import { BrandMark } from "@/components/brand-mark";
-import { DashboardDatePicker } from "@/components/dashboard-date-picker";
 
 const MotionLink = motion.create(Link);
 
@@ -13,11 +12,9 @@ type NavIconName =
   | "home"
   | "calendar"
   | "budget"
-  | "income"
-  | "expense"
+  | "transactions"
   | "subscription"
   | "debt"
-  | "roadmap"
   | "goal"
   | "history"
   | "settings";
@@ -36,8 +33,7 @@ const NAV_GROUPS: { label: string; links: NavLinkItem[] }[] = [
   {
     label: "Money",
     links: [
-      { href: "/dashboard/income", label: "Income", icon: "income" },
-      { href: "/dashboard/expenses", label: "Expenses", icon: "expense" },
+      { href: "/dashboard/transactions", label: "Transactions", icon: "transactions" },
       { href: "/dashboard/subscriptions", label: "Subscriptions", icon: "subscription" },
     ],
   },
@@ -45,7 +41,6 @@ const NAV_GROUPS: { label: string; links: NavLinkItem[] }[] = [
     label: "Planning",
     links: [
       { href: "/dashboard/debts", label: "Debts", icon: "debt" },
-      { href: "/dashboard/debts/roadmap", label: "Debt roadmap", icon: "roadmap" },
       { href: "/dashboard/goals", label: "Goals", icon: "goal" },
     ],
   },
@@ -59,32 +54,6 @@ const NAV_GROUPS: { label: string; links: NavLinkItem[] }[] = [
 ];
 
 const MOBILE_LINKS = NAV_GROUPS.flatMap((group) => group.links);
-const STORAGE_KEY = "pocket-watcher-dashboard-date";
-
-function readStoredDate() {
-  const now = new Date();
-  if (typeof window === "undefined") return { month: now.getMonth(), year: now.getFullYear() };
-
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) return { month: now.getMonth(), year: now.getFullYear() };
-    const parsed = JSON.parse(raw) as { month?: number; year?: number };
-    const month = Number(parsed.month);
-    const year = Number(parsed.year);
-    return {
-      month: Number.isFinite(month) ? Math.min(11, Math.max(0, month)) : now.getMonth(),
-      year: Number.isFinite(year) ? year : now.getFullYear(),
-    };
-  } catch {
-    return { month: now.getMonth(), year: now.getFullYear() };
-  }
-}
-
-function buildHrefWithDate(href: string, month: number, year: number) {
-  const params = new URLSearchParams({ year: String(year) });
-  if (href !== "/dashboard/calendar") params.set("month", String(month));
-  return `${href}?${params.toString()}`;
-}
 
 function isCurrentPath(pathname: string, href: string) {
   if (href === "/dashboard" || href === "/dashboard/debts") return pathname === href;
@@ -94,22 +63,13 @@ function isCurrentPath(pathname: string, href: string) {
 export function DashboardNav({ userName, logoutControl }: { userName: string; logoutControl: ReactNode }) {
   const pathname = usePathname();
   const reduceMotion = useReducedMotion();
-  const [selectedDate, setSelectedDate] = useState<{ month: number; year: number } | null>(null);
-  const [showMobilePeriod, setShowMobilePeriod] = useState(false);
-
-  useEffect(() => {
-    const syncDateFromStorage = () => setSelectedDate(readStoredDate());
-    syncDateFromStorage();
-    window.addEventListener("dashboard-date-changed", syncDateFromStorage);
-    return () => window.removeEventListener("dashboard-date-changed", syncDateFromStorage);
-  }, []);
 
   const renderLink = (link: NavLinkItem, variant: "desktop" | "mobile") => {
     const active = isCurrentPath(pathname, link.href);
     return (
       <MotionLink
         key={`${variant}-${link.href}`}
-        href={selectedDate ? buildHrefWithDate(link.href, selectedDate.month, selectedDate.year) : link.href}
+        href={link.href}
         className={`nav-link ${variant === "mobile" ? "nav-link-mobile" : ""} ${active ? "is-active" : ""}`}
         whileHover={reduceMotion ? undefined : { x: variant === "desktop" ? 3 : 0, y: variant === "mobile" ? -2 : 0 }}
         whileTap={reduceMotion ? undefined : { scale: 0.97 }}
@@ -148,13 +108,6 @@ export function DashboardNav({ userName, logoutControl }: { userName: string; lo
           </span>
         </Link>
 
-        <div className="period-card mt-5 rounded-xl p-3">
-          <p className="mb-2 px-1 text-[10px] font-bold uppercase tracking-[0.16em] text-[color:var(--muted-soft)]">
-            Viewing period
-          </p>
-          <DashboardDatePicker />
-        </div>
-
         <nav className="mt-6 flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto px-1 pb-5">
           {NAV_GROUPS.map((group) => (
             <div key={group.label}>
@@ -185,39 +138,12 @@ export function DashboardNav({ userName, logoutControl }: { userName: string; lo
             <span className="font-bold tracking-[-0.02em] text-[color:var(--foreground)]">Pocket Watcher</span>
           </Link>
           <div className="flex items-center gap-2">
-            <motion.button
-              type="button"
-              onClick={() => setShowMobilePeriod((current) => !current)}
-              className="mobile-period-button"
-              aria-expanded={showMobilePeriod}
-              aria-label="Change viewing period"
-              whileTap={reduceMotion ? undefined : { scale: 0.96 }}
-            >
-              <NavIcon name="calendar" />
-              <span>{selectedDate ? `${selectedDate.month + 1}/${selectedDate.year}` : "Period"}</span>
-            </motion.button>
             <span className="grid h-8 w-8 place-items-center rounded-lg bg-[color:var(--surface-inset)] text-xs font-bold text-[color:var(--primary-deep)]">
               {userName.slice(0, 1).toUpperCase()}
             </span>
             {logoutControl}
           </div>
         </div>
-        <AnimatePresence>
-          {showMobilePeriod && (
-            <motion.div
-              initial={reduceMotion ? false : { opacity: 0, y: -8, scale: 0.98 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={reduceMotion ? undefined : { opacity: 0, y: -6, scale: 0.98 }}
-              transition={{ duration: 0.18 }}
-              className="mobile-period-popover absolute right-4 top-14 w-56 rounded-xl p-3"
-            >
-              <p className="mb-2 px-1 text-[10px] font-bold uppercase tracking-[0.16em] text-[color:var(--muted-soft)]">
-                Viewing period
-              </p>
-              <DashboardDatePicker />
-            </motion.div>
-          )}
-        </AnimatePresence>
         <nav className="mobile-nav-scroll flex gap-1 overflow-x-auto px-3 pb-3">
           {MOBILE_LINKS.map((link) => renderLink(link, "mobile"))}
         </nav>
@@ -247,18 +173,12 @@ function NavIcon({ name }: { name: NavIconName }) {
         <path d="M7 9h10M7 14h4M15 14h2" />
       </>
     ),
-    income: (
+    transactions: (
       <>
-        <path d="M12 3v14" />
-        <path d="m7 12 5 5 5-5" />
-        <path d="M5 21h14" />
-      </>
-    ),
-    expense: (
-      <>
-        <path d="M12 21V7" />
-        <path d="m7 12 5-5 5 5" />
-        <path d="M5 3h14" />
+        <path d="m7 4-4 4 4 4" />
+        <path d="M3 8h14" />
+        <path d="m17 20 4-4-4-4" />
+        <path d="M21 16H7" />
       </>
     ),
     subscription: (
@@ -273,13 +193,6 @@ function NavIcon({ name }: { name: NavIconName }) {
       <>
         <circle cx="12" cy="12" r="9" />
         <path d="M15.5 8.5c-.7-.8-1.8-1.2-3.2-1.2-1.8 0-3.1.9-3.1 2.3 0 3.5 6.2 1.5 6.2 4.9 0 1.4-1.3 2.4-3.3 2.4-1.5 0-2.8-.5-3.6-1.5M12 5.5v13" />
-      </>
-    ),
-    roadmap: (
-      <>
-        <circle cx="6" cy="18" r="2" />
-        <circle cx="18" cy="6" r="2" />
-        <path d="M7.5 16.5 16.5 7.5M6 6h6M6 6v6" />
       </>
     ),
     goal: (

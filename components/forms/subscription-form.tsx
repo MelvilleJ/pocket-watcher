@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import { createSubscription } from "@/lib/actions/subscriptions";
 import { BILLING_CYCLE_LABELS } from "@/lib/finance/subscriptions";
+import { CreatableSelect } from "@/components/forms/creatable-select";
 
 export function SubscriptionForm({ categories }: { categories: { id: string; name: string }[] }) {
   const [state, action, pending] = useActionState(createSubscription, undefined);
@@ -15,18 +16,14 @@ export function SubscriptionForm({ categories }: { categories: { id: string; nam
         required
         className="rounded-md border border-black/15 dark:border-white/15 bg-transparent px-3 py-2 text-sm"
       />
-      <input
-        list="subscription-categories"
+      <CreatableSelect
         name="categoryName"
+        options={categories.map((c) => ({ value: c.name }))}
         placeholder="Category"
+        newPlaceholder="New category"
         required
-        className="rounded-md border border-black/15 dark:border-white/15 bg-transparent px-3 py-2 text-sm"
+        className="w-full rounded-md border border-black/15 dark:border-white/15 bg-transparent px-3 py-2 text-sm"
       />
-      <datalist id="subscription-categories">
-        {categories.map((c) => (
-          <option key={c.id} value={c.name} />
-        ))}
-      </datalist>
       <select
         name="billingCycle"
         defaultValue="monthly"

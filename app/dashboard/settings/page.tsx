@@ -3,19 +3,23 @@ import { listSessions } from "@/lib/queries/audit";
 import { SettingsForm } from "@/components/forms/settings-form";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { revokeSession } from "@/lib/actions/settings";
+import { PageHero } from "@/components/page-hero";
 
 export default async function SettingsPage() {
   const user = await requireUser();
   const sessions = await listSessions(user.id);
 
   return (
-    <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">Settings</h1>
-        <p className="text-sm text-zinc-500 dark:text-zinc-400">
-          Profile, currency, savings rate, and device sessions.
-        </p>
-      </div>
+    <div className="page-accent-settings flex flex-col gap-6">
+      <PageHero
+        title="Settings"
+        description="Profile, currency, savings rate, and device sessions."
+        iconPath="M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6ZM19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.8 2.8-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6v.2h-4V21a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1L4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9A1.7 1.7 0 0 0 3 14H2.8v-4H3a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9L4.2 7 7 4.2l.1.1A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-1.6v-.2h4V3a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1L19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.6 1h.2v4H21a1.7 1.7 0 0 0-1.6 1Z"
+        stats={[
+          { label: "Currency", value: user.currency },
+          { label: "Savings rate", value: `${(Number(user.savingsRate) * 100).toFixed(0)}%` },
+        ]}
+      />
 
       <section className="rounded-xl border border-black/10 dark:border-white/10 bg-white dark:bg-zinc-950 p-5">
         <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Profile</h2>

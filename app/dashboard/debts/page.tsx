@@ -3,6 +3,8 @@ import { getDebtsWithBalances } from "@/lib/queries/debts";
 import { deleteDebt, deleteDebtPayment } from "@/lib/actions/debts";
 import { DebtForm } from "@/components/forms/debt-form";
 import { DebtPaymentForm } from "@/components/forms/debt-payment-form";
+import { DebtRoadmapPlanner } from "@/components/debt-roadmap-planner";
+import { PageHero } from "@/components/page-hero";
 import { DeleteButton } from "@/components/delete-button";
 import { db } from "@/lib/db";
 import { debtPayments } from "@/lib/db/schema";
@@ -27,26 +29,33 @@ export default async function DebtsPage() {
   const payments = paymentRows.filter((payment) => debtNameById.has(payment.debtId));
   const totalBalance = debts.reduce((sum, d) => sum + d.currentBalance, 0);
 
+  const activeDebts = debts.filter((d) => d.currentBalance > 0);
+  const minTotalPayment = activeDebts.reduce((sum, d) => sum + d.minMonthlyPayment, 0);
+  const roadmapInput = activeDebts.map((d) => ({
+    id: d.id,
+    name: d.name,
+    balance: d.currentBalance,
+    interestRate: d.interestRate,
+    minMonthlyPayment: d.minMonthlyPayment,
+  }));
+
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">Debts</h1>
-          <p className="text-sm text-zinc-500 dark:text-zinc-400">
-            What you owe, and every payment you make against it.
-          </p>
-        </div>
-        <p className="text-sm text-zinc-500 dark:text-zinc-400">
-          Total outstanding:{" "}
-          <span className="font-semibold text-[color:var(--status-critical)]">
-            {formatCurrency(totalBalance, user.currency)}
-          </span>
-        </p>
-      </div>
+    <div className="page-accent-debt flex flex-col gap-6">
+      <PageHero
+        title="Debts Roadmap"
+        description="Track what you owe and compare strategies for paying it off."
+        iconPath="M3 7h18v10H3zM3 11h18M7 15h3"
+        stats={[
+          { label: "Outstanding", value: formatCurrency(totalBalance, user.currency) },
+          { label: "Min. monthly", value: formatCurrency(minTotalPayment, user.currency) },
+        ]}
+      />
 
       <section className="rounded-xl border border-black/10 dark:border-white/10 bg-white dark:bg-zinc-950 p-5">
-        <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Add a debt</h2>
-        <DebtForm />
+        <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">Add a debt</h2>
+        <div className="mt-3">
+          <DebtForm />
+        </div>
       </section>
 
       <section className="overflow-x-auto rounded-xl border border-black/10 dark:border-white/10 bg-white dark:bg-zinc-950">
@@ -54,7 +63,7 @@ export default async function DebtsPage() {
           <thead>
             <tr className="border-b border-black/10 dark:border-white/10 text-left text-zinc-500">
               <th className="px-4 py-3 font-medium">Name</th>
-              <th className="px-4 py-3 font-medium">Lender / type</th>
+              <th className="px-4 py-3 font-medium">Type</th>
               <th className="px-4 py-3 font-medium text-right">Original</th>
               <th className="px-4 py-3 font-medium text-right">Rate</th>
               <th className="px-4 py-3 font-medium text-right">Min. payment</th>
@@ -119,7 +128,7 @@ export default async function DebtsPage() {
             {payments.map((p) => (
               <tr key={p.id} className="border-b border-black/5 dark:border-white/5">
                 <td className="px-4 py-2">{p.date.toISOString().slice(0, 10)}</td>
-                <td className="px-4 py-2">{debtNameById.get(p.debtId) ?? "—"}</td>
+                <td className="px-4 py-2">{debtNameById.get(p.debtId) ?? "-"}</td>
                 <td className="px-4 py-2 text-zinc-500">{p.description}</td>
                 <td className="px-4 py-2 text-right tabular-nums">
                   {formatCurrency(Number(p.amount), user.currency)}
@@ -139,6 +148,8 @@ export default async function DebtsPage() {
           </tbody>
         </table>
       </section>
+
+      <DebtRoadmapPlanner debts={roadmapInput} currency={user.currency} minTotalPayment={minTotalPayment} />
     </div>
   );
 }

@@ -1,3 +1,5 @@
+import { addMonths, addWeeks } from "date-fns";
+
 export const MONTHLY_FACTOR: Record<string, number> = {
   weekly: 4.345,
   fortnightly: 2.1725,
@@ -21,15 +23,24 @@ export function calcMonthlyCost(billingCycle: string, billedAmount: number) {
   return billedAmount * factor;
 }
 
-export function isSubscriptionActiveInMonth(
-  startDate: Date,
-  endDate: Date | null,
-  monthStart: Date
-) {
-  const monthEnd = new Date(monthStart.getFullYear(), monthStart.getMonth() + 1, 0);
-  if (startDate > monthEnd) return false;
-  if (endDate && endDate < new Date(monthStart.getFullYear(), monthStart.getMonth(), 1)) {
-    return false;
+const CYCLE_STEP: Record<string, { weeks?: number; months?: number }> = {
+  weekly: { weeks: 1 },
+  fortnightly: { weeks: 2 },
+  monthly: { months: 1 },
+  quarterly: { months: 3 },
+  half_yearly: { months: 6 },
+  yearly: { months: 12 },
+};
+
+// Start dates are stored as UTC midnight of the chosen day, so the UTC parts are the calendar date.
+// Each date is offset from the anchor rather than the previous date so a 31st clamps per month instead of drifting.
+export function billingDates(billingCycle: string, startDate: Date, through: Date): Date[] {
+  const step = CYCLE_STEP[billingCycle] ?? CYCLE_STEP.monthly;
+  const anchor = new Date(startDate.getUTCFullYear(), startDate.getUTCMonth(), startDate.getUTCDate());
+  const dates: Date[] = [];
+  for (let n = 0; ; n++) {
+    const date = step.weeks ? addWeeks(anchor, n * step.weeks) : addMonths(anchor, n * step.months!);
+    if (date > through) return dates;
+    dates.push(date);
   }
-  return true;
 }

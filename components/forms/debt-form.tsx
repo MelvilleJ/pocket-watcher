@@ -2,6 +2,7 @@
 
 import { useActionState } from "react";
 import { createDebt } from "@/lib/actions/debts";
+import { DEBT_TYPES } from "@/lib/debts";
 
 export function DebtForm() {
   const [state, action, pending] = useActionState(createDebt, undefined);
@@ -14,11 +15,19 @@ export function DebtForm() {
         required
         className="rounded-md border border-black/15 dark:border-white/15 bg-transparent px-3 py-2 text-sm"
       />
-      <input
+      <select
         name="lenderType"
-        placeholder="Lender / type"
+        defaultValue=""
+        aria-label="Debt type"
         className="rounded-md border border-black/15 dark:border-white/15 bg-transparent px-3 py-2 text-sm"
-      />
+      >
+        <option value="">Type (optional)</option>
+        {DEBT_TYPES.map((t) => (
+          <option key={t} value={t}>
+            {t}
+          </option>
+        ))}
+      </select>
       <input
         type="number"
         step="0.01"
@@ -29,9 +38,11 @@ export function DebtForm() {
       />
       <input
         type="number"
-        step="0.0001"
-        name="interestRate"
-        placeholder="Interest rate (0.18 = 18%)"
+        step="0.01"
+        min="0"
+        max="100"
+        name="interestRatePercent"
+        placeholder="Interest rate (%)"
         required
         className="rounded-md border border-black/15 dark:border-white/15 bg-transparent px-3 py-2 text-sm"
       />

@@ -5,6 +5,7 @@ import { cancelSubscription, deleteSubscription } from "@/lib/actions/subscripti
 import { SubscriptionForm } from "@/components/forms/subscription-form";
 import { DeleteButton } from "@/components/delete-button";
 import { BILLING_CYCLE_LABELS, calcMonthlyCost } from "@/lib/finance/subscriptions";
+import { PageHero } from "@/components/page-hero";
 
 function formatCurrency(value: number, currency: string) {
   return `${currency}${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -17,29 +18,28 @@ export default async function SubscriptionsPage() {
     getExpenseCategories(user.id),
   ]);
 
+  const activeCount = rows.filter((r) => r.status === "active").length;
   const totalMonthly = rows
     .filter((r) => r.status === "active")
     .reduce((sum, r) => sum + calcMonthlyCost(r.billingCycle, Number(r.billedAmount)), 0);
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">Subscriptions</h1>
-          <p className="text-sm text-zinc-500 dark:text-zinc-400">
-            One row per subscription. Billed in every month it was active.
-          </p>
-        </div>
-        <p className="text-sm text-zinc-500 dark:text-zinc-400">
-          Active monthly total:{" "}
-          <span className="font-semibold text-zinc-900 dark:text-zinc-50">
-            {formatCurrency(totalMonthly, user.currency)}
-          </span>
-        </p>
-      </div>
+    <div className="page-accent-subscription flex flex-col gap-6">
+      <PageHero
+        title="Subscriptions"
+        description="One row per subscription. Billed in every month it was active."
+        iconPath="M20 7h-9M15 3l-4 4 4 4M4 17h9M9 13l4 4-4 4"
+        stats={[
+          { label: "Monthly total", value: formatCurrency(totalMonthly, user.currency) },
+          { label: "Active", value: String(activeCount) },
+        ]}
+      />
 
       <section className="rounded-xl border border-black/10 dark:border-white/10 bg-white dark:bg-zinc-950 p-5">
-        <SubscriptionForm categories={categories} />
+        <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">Add a subscription</h2>
+        <div className="mt-3">
+          <SubscriptionForm categories={categories} />
+        </div>
       </section>
 
       <section className="overflow-x-auto rounded-xl border border-black/10 dark:border-white/10 bg-white dark:bg-zinc-950">

@@ -50,6 +50,27 @@
       "when": 1787874775404,
       "tag": "0006_add_income_applied_month",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1790901945627,
+      "tag": "0007_add_depos",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1790902970310,
+      "tag": "0008_add_transfer_fee",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1790903383256,
+      "tag": "0009_add_subscription_charges",
+      "breakpoints": true
     }
   ]
 }

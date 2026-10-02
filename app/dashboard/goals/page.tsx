@@ -3,6 +3,7 @@ import { listGoalsForUser } from "@/lib/queries/goals";
 import { GoalsRoadmapPlanner } from "@/components/goals-roadmap-planner";
 import { GoalForm } from "@/components/forms/goal-form";
 import { GoalContributionForm } from "@/components/forms/goal-contribution-form";
+import { PageHero } from "@/components/page-hero";
 import { DeleteButton } from "@/components/delete-button";
 import { deleteGoalPayment } from "@/lib/actions/goals";
 import { db } from "@/lib/db";
@@ -32,17 +33,22 @@ export default async function GoalsPage() {
   }));
 
   const minTotal = goals.reduce((s, g) => s + g.minMonthlyContribution, 0);
+  const totalSaved = goals.reduce((s, g) => s + g.currentSaved, 0);
+  const totalTarget = goals.reduce((s, g) => s + g.targetAmount, 0);
   const goalNameById = new Map(goals.map((goal) => [goal.id, goal.name]));
   const payments = paymentRows.filter((payment) => goalNameById.has(payment.goalId));
 
   return (
-    <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">Goals Roadmap</h1>
-        <p className="text-sm text-zinc-500 dark:text-zinc-400">
-          Plan how your monthly savings allocation completes your goals.
-        </p>
-      </div>
+    <div className="page-accent-goal flex flex-col gap-6">
+      <PageHero
+        title="Goals Roadmap"
+        description="Plan how your monthly savings allocation completes your goals."
+        iconPath="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18ZM12 17a5 5 0 1 0 0-10 5 5 0 0 0 0 10ZM12 13a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z"
+        stats={[
+          { label: "Saved", value: formatCurrency(totalSaved, user.currency) },
+          { label: "Target", value: formatCurrency(totalTarget, user.currency) },
+        ]}
+      />
 
       <section className="rounded-xl border border-black/10 dark:border-white/10 bg-white dark:bg-zinc-950 p-5">
         <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">Create a goal</h2>
@@ -102,7 +108,7 @@ export default async function GoalsPage() {
             {payments.map((payment) => (
               <tr key={payment.id} className="border-b border-black/5 dark:border-white/5">
                 <td className="px-4 py-2">{payment.date.toISOString().slice(0, 10)}</td>
-                <td className="px-4 py-2">{goalNameById.get(payment.goalId) ?? "—"}</td>
+                <td className="px-4 py-2">{goalNameById.get(payment.goalId) ?? "-"}</td>
                 <td className="px-4 py-2 text-zinc-500">{payment.description}</td>
                 <td className="px-4 py-2 text-right tabular-nums">{formatCurrency(Number(payment.amount), user.currency)}</td>
                 <td className="px-4 py-2 text-right">

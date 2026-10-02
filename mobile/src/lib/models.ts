@@ -59,6 +59,35 @@ function nowIso() {
   return new Date().toISOString();
 }
 
+export type NameOptionKind = "expense_category" | "income_source";
+
+const USED_NAMES_QUERY: Record<NameOptionKind, string> = {
+  expense_category:
+    "SELECT category_name AS name FROM expenses WHERE deleted_at IS NULL UNION SELECT category_name FROM subscriptions WHERE deleted_at IS NULL",
+  income_source: "SELECT source_name AS name FROM income WHERE deleted_at IS NULL",
+};
+
+// Includes names used offline that the server has not seen yet, so a new category is reusable before the next sync.
+export function listNameOptions(kind: NameOptionKind): string[] {
+  const synced = db.getAllSync<{ name: string }>("SELECT name FROM name_options WHERE kind = ?", [kind]);
+  const used = db.getAllSync<{ name: string }>(USED_NAMES_QUERY[kind]);
+  const byKey = new Map<string, string>();
+  for (const { name } of [...synced, ...used]) {
+    const key = name.trim().toLowerCase();
+    if (key && !byKey.has(key)) byKey.set(key, name.trim());
+  }
+  return [...byKey.values()].sort((a, b) => a.localeCompare(b));
+}
+
+export function replaceNameOptions(kind: NameOptionKind, names: string[]) {
+  db.withTransactionSync(() => {
+    db.runSync("DELETE FROM name_options WHERE kind = ?", [kind]);
+    for (const name of names) {
+      db.runSync("INSERT OR IGNORE INTO name_options (kind, name) VALUES (?, ?)", [kind, name]);
+    }
+  });
+}
+
 export function listIncome(): IncomeRow[] {
   return db.getAllSync(
     "SELECT id, date, source_name, description, amount, notes FROM income WHERE deleted_at IS NULL ORDER BY date DESC"

@@ -13,6 +13,9 @@ import {
 import { authenticateMobileRequest } from "@/lib/auth/mobile-request";
 import { recordAudit } from "@/lib/audit";
 import { SyncPushSchema } from "@/lib/validation/sync";
+import { resolveExpenseCategory, resolveIncomeSource } from "@/lib/categories";
+import { syncBudgetLinesForUser } from "@/lib/actions/budgets";
+import { generateSubscriptionCharges } from "@/lib/subscription-charges";
 
 export async function GET(request: NextRequest) {
   const session = await authenticateMobileRequest(request);
@@ -182,7 +185,11 @@ export async function POST(request: NextRequest) {
     });
   }
 
+  let createdListEntry = false;
+
   for (const rec of parsed.data.income ?? []) {
+    const source = await resolveIncomeSource(userId, rec.sourceName);
+    createdListEntry ||= source.created;
     const [row] = await db
       .insert(income)
       .values({
@@ -190,7 +197,8 @@ export async function POST(request: NextRequest) {
         clientId: rec.clientId,
         date: new Date(rec.date),
         appliedMonth: rec.appliedMonth ?? null,
-        sourceName: rec.sourceName,
+        sourceId: source.id,
+        sourceName: source.name,
         description: rec.description ?? null,
         amount: rec.amount.toFixed(2),
         notes: rec.notes ?? null,
@@ -202,7 +210,8 @@ export async function POST(request: NextRequest) {
         set: {
           date: new Date(rec.date),
           ...(rec.appliedMonth !== undefined ? { appliedMonth: rec.appliedMonth } : {}),
-          sourceName: rec.sourceName,
+          sourceId: source.id,
+          sourceName: source.name,
           description: rec.description ?? null,
           amount: rec.amount.toFixed(2),
           notes: rec.notes ?? null,
@@ -224,13 +233,16 @@ export async function POST(request: NextRequest) {
   }
 
   for (const rec of parsed.data.expenses ?? []) {
+    const category = await resolveExpenseCategory(userId, rec.categoryName);
+    createdListEntry ||= category.created;
     const [row] = await db
       .insert(expenses)
       .values({
         userId,
         clientId: rec.clientId,
         date: new Date(rec.date),
-        categoryName: rec.categoryName,
+        categoryId: category.id,
+        categoryName: category.name,
         description: rec.description ?? null,
         amount: rec.amount.toFixed(2),
         paid: rec.paid ?? true,
@@ -242,7 +254,8 @@ export async function POST(request: NextRequest) {
         target: [expenses.userId, expenses.clientId],
         set: {
           date: new Date(rec.date),
-          categoryName: rec.categoryName,
+          categoryId: category.id,
+          categoryName: category.name,
           description: rec.description ?? null,
           amount: rec.amount.toFixed(2),
           paid: rec.paid ?? true,
@@ -265,13 +278,16 @@ export async function POST(request: NextRequest) {
   }
 
   for (const rec of parsed.data.subscriptions ?? []) {
+    const category = await resolveExpenseCategory(userId, rec.categoryName);
+    createdListEntry ||= category.created;
     const [row] = await db
       .insert(subscriptions)
       .values({
         userId,
         clientId: rec.clientId,
         name: rec.name,
-        categoryName: rec.categoryName,
+        categoryId: category.id,
+        categoryName: category.name,
         billingCycle: rec.billingCycle,
         billedAmount: rec.billedAmount.toFixed(2),
         startDate: new Date(rec.startDate),
@@ -285,7 +301,8 @@ export async function POST(request: NextRequest) {
         target: [subscriptions.userId, subscriptions.clientId],
         set: {
           name: rec.name,
-          categoryName: rec.categoryName,
+          categoryId: category.id,
+          categoryName: category.name,
           billingCycle: rec.billingCycle,
           billedAmount: rec.billedAmount.toFixed(2),
           startDate: new Date(rec.startDate),
@@ -308,6 +325,9 @@ export async function POST(request: NextRequest) {
       source: "mobile",
     });
   }
+
+  if (createdListEntry) await syncBudgetLinesForUser(userId);
+  if (parsed.data.subscriptions?.length) await generateSubscriptionCharges(userId);
 
   return NextResponse.json({ serverTime: new Date(), ids: result });
 }

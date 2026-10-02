@@ -29,7 +29,7 @@ export async function createDebt(
       name: parsed.data.name,
       lenderType: parsed.data.lenderType || null,
       originalAmount: parsed.data.originalAmount.toFixed(2),
-      interestRate: parsed.data.interestRate.toFixed(4),
+      interestRate: (parsed.data.interestRatePercent / 100).toFixed(4),
       minMonthlyPayment: parsed.data.minMonthlyPayment.toFixed(2),
       notes: parsed.data.notes || null,
     })
@@ -120,7 +120,6 @@ export async function createDebtPayment(
   });
 
   revalidatePath("/dashboard/debts");
-  revalidatePath("/dashboard/debts/roadmap");
   revalidatePath("/dashboard");
 }
 
@@ -149,6 +148,5 @@ export async function deleteDebtPayment(id: string) {
   });
 
   revalidatePath("/dashboard/debts");
-  revalidatePath("/dashboard/debts/roadmap");
   revalidatePath("/dashboard");
 }

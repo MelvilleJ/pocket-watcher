@@ -149,7 +149,7 @@ export function MonthCalendarViewer({
                 {dayNumbers.map((day) => {
                   const value = days.get(day);
                   const incoming = value?.income ?? 0;
-                  const outgoing = (value?.expenses ?? 0) + (value?.debtPayments ?? 0) + (value?.goalPayments ?? 0);
+                  const outgoing = (value?.expenses ?? 0) + (value?.subscriptions ?? 0) + (value?.debtPayments ?? 0) + (value?.goalPayments ?? 0);
                   return (
                     <span
                       key={day}

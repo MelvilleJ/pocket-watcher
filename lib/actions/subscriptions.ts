@@ -9,6 +9,8 @@ import { requireUser } from "@/lib/auth/dal";
 import { recordAudit } from "@/lib/audit";
 import { SubscriptionSchema, type FormState } from "@/lib/validation/entities";
 import { syncBudgetLinesForUser } from "@/lib/actions/budgets";
+import { generateSubscriptionCharges } from "@/lib/subscription-charges";
+import { resolveExpenseCategory } from "@/lib/categories";
 
 export async function createSubscription(
   _state: FormState,
@@ -19,6 +21,7 @@ export async function createSubscription(
   if (!parsed.success) {
     return { error: "Invalid input", fieldErrors: parsed.error.flatten().fieldErrors };
   }
+  const category = await resolveExpenseCategory(user.id, parsed.data.categoryName);
 
   const [row] = await db
     .insert(subscriptions)
@@ -26,7 +29,8 @@ export async function createSubscription(
       userId: user.id,
       clientId: randomUUID(),
       name: parsed.data.name,
-      categoryName: parsed.data.categoryName,
+      categoryId: category.id,
+      categoryName: category.name,
       billingCycle: parsed.data.billingCycle,
       billedAmount: parsed.data.billedAmount.toFixed(2),
       startDate: new Date(parsed.data.startDate),
@@ -45,8 +49,11 @@ export async function createSubscription(
   });
 
   await syncBudgetLinesForUser(user.id);
+  await generateSubscriptionCharges(user.id);
 
   revalidatePath("/dashboard/subscriptions");
+  revalidatePath("/dashboard/transactions");
+  revalidatePath("/dashboard/calendar");
   revalidatePath("/dashboard/budget");
   revalidatePath("/dashboard");
 }

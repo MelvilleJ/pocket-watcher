@@ -2,14 +2,14 @@
 
 import { useMemo, useState } from "react";
 import { simulateGoalsRoadmap, type RoadmapGoalInput } from "@/lib/finance/goals-roadmap";
-import { GoalsRoadmapChart } from "@/components/charts/goals-roadmap-chart";
+import { RoadmapAreaChart } from "@/components/charts/roadmap-area-chart";
 
 function formatCurrency(value: number, currency: string) {
   return `${currency}${value.toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
 }
 
 function monthsFromNowLabel(months: number | null) {
-  if (months === null) return "—";
+  if (months === null) return "-";
   const years = Math.floor(months / 12);
   const rem = months % 12;
   if (years === 0) return `${rem} mo`;
@@ -65,14 +65,21 @@ export function GoalsRoadmapPlanner({
           step={10}
           value={monthlyAllocation}
           onChange={(e) => setMonthlyAllocation(Number(e.target.value))}
-          className="mt-3 w-full accent-[color:var(--series-1)]"
+          className="mt-3 w-full"
         />
       </section>
 
       <section className="rounded-xl border border-black/10 dark:border-white/10 bg-white dark:bg-zinc-950 p-5">
         <h2 className="text-base font-semibold text-zinc-900 dark:text-zinc-50">Total remaining over time</h2>
         <div className="mt-4">
-          <GoalsRoadmapChart data={chartData} currency={currency} />
+          <RoadmapAreaChart
+            data={chartData}
+            currency={currency}
+            series={[
+              { key: "largest", name: "Largest remaining first", color: "var(--series-7)" },
+              { key: "smallest", name: "Smallest remaining first", color: "var(--aqua)" },
+            ]}
+          />
         </div>
       </section>
 

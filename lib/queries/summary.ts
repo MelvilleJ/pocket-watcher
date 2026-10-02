@@ -2,7 +2,7 @@ import "server-only";
 import { and, eq, gte, isNull, like, lte, or } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { debtPayments, debts, expenses, goalPayments, goals, income, subscriptions } from "@/lib/db/schema";
-import { calcMonthlyCost, isSubscriptionActiveInMonth } from "@/lib/finance/subscriptions";
+import { listTransferFeesAsExpenses } from "@/lib/queries/depos";
 
 export type MonthSummary = {
   month: Date;
@@ -45,7 +45,7 @@ export async function getYearRawData(userId: string, year: number) {
   const yearStart = new Date(year, 0, 1);
   const yearEnd = new Date(year, 11, 31, 23, 59, 59, 999);
 
-  const [incomeRows, expenseRows, allSubs, debtPaymentRows, goalPaymentRows] = await Promise.all([
+  const [incomeRows, loggedExpenseRows, allSubs, debtPaymentRows, goalPaymentRows, transferFeeRows] = await Promise.all([
     db
       .select()
       .from(income)
@@ -66,14 +66,15 @@ export async function getYearRawData(userId: string, year: number) {
         and(
           eq(expenses.userId, userId),
           isNull(expenses.deletedAt),
+          eq(expenses.paid, true),
           gte(expenses.date, yearStart),
           lte(expenses.date, yearEnd)
         )
       ),
     db
-      .select()
+      .select({ id: subscriptions.id, name: subscriptions.name })
       .from(subscriptions)
-      .where(and(eq(subscriptions.userId, userId), isNull(subscriptions.deletedAt))),
+      .where(eq(subscriptions.userId, userId)),
     db
       .select()
       .from(debtPayments)
@@ -96,16 +97,27 @@ export async function getYearRawData(userId: string, year: number) {
           lte(goalPayments.date, yearEnd)
         )
       ),
+    listTransferFeesAsExpenses(userId, yearStart, yearEnd),
   ]);
 
-  return { incomeRows, expenseRows, allSubs, debtPaymentRows, goalPaymentRows };
+  const subscriptionNameById = new Map(allSubs.map((s) => [s.id, s.name] as const));
+  const subscriptionChargeRows = loggedExpenseRows.flatMap((r) => {
+    const name = r.subscriptionId && subscriptionNameById.get(r.subscriptionId);
+    return name ? [{ date: r.date, amount: r.amount, name }] : [];
+  });
+  const expenseRows: { date: Date; amount: string; categoryName: string }[] = [
+    ...loggedExpenseRows.filter((r) => !r.subscriptionId),
+    ...transferFeeRows,
+  ];
+
+  return { incomeRows, expenseRows, subscriptionChargeRows, debtPaymentRows, goalPaymentRows };
 }
 
 export async function getMonthByMonthSummary(
   userId: string,
   year: number
 ): Promise<MonthSummary[]> {
-  const { incomeRows, expenseRows, allSubs, debtPaymentRows } = await getYearRawData(
+  const { incomeRows, expenseRows, subscriptionChargeRows, debtPaymentRows } = await getYearRawData(
     userId,
     year
   );
@@ -124,9 +136,9 @@ export async function getMonthByMonthSummary(
       .filter((r) => r.date >= start && r.date <= end)
       .reduce((sum, r) => sum + num(r.amount), 0);
 
-    const monthSubs = allSubs
-      .filter((s) => isSubscriptionActiveInMonth(s.startDate, s.endDate, start))
-      .reduce((sum, s) => sum + calcMonthlyCost(s.billingCycle, num(s.billedAmount)), 0);
+    const monthSubs = subscriptionChargeRows
+      .filter((r) => r.date >= start && r.date <= end)
+      .reduce((sum, r) => sum + num(r.amount), 0);
 
     const monthDebt = debtPaymentRows
       .filter((r) => r.date >= start && r.date <= end)
@@ -178,7 +190,7 @@ export async function getCategoryBreakdown(
 
 export async function getBudgetActuals(userId: string, year: number, monthIndex: number) {
   const { start, end } = monthRange(year, monthIndex);
-  const { incomeRows, expenseRows, allSubs, debtPaymentRows, goalPaymentRows } = await getYearRawData(userId, year);
+  const { incomeRows, expenseRows, subscriptionChargeRows, debtPaymentRows, goalPaymentRows } = await getYearRawData(userId, year);
 
   const incomeBySource = new Map<string, number>();
   for (const row of incomeRows) {
@@ -196,10 +208,9 @@ export async function getBudgetActuals(userId: string, year: number, monthIndex:
   }
 
   const subscriptionByName = new Map<string, number>();
-  for (const s of allSubs) {
-    if (!isSubscriptionActiveInMonth(s.startDate, s.endDate, start)) continue;
-    const cost = calcMonthlyCost(s.billingCycle, num(s.billedAmount));
-    subscriptionByName.set(s.name, (subscriptionByName.get(s.name) ?? 0) + cost);
+  for (const row of subscriptionChargeRows) {
+    if (row.date < start || row.date > end) continue;
+    subscriptionByName.set(row.name, (subscriptionByName.get(row.name) ?? 0) + num(row.amount));
   }
 
   const debtNameById = new Map(

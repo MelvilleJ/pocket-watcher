@@ -50,7 +50,7 @@ export default function SummaryScreen() {
       await fullSync();
       load();
     } catch {
-      // offline or server unreachable — local data still shown
+      // offline or server unreachable; local data still shown
     } finally {
       setRefreshing(false);
     }
@@ -66,7 +66,7 @@ export default function SummaryScreen() {
     >
       {offline && (
         <ThemedView type="backgroundSelected" style={styles.offlineBanner}>
-          <ThemedText type="small">You&apos;re offline — showing data saved on this device.</ThemedText>
+          <ThemedText type="small">You&apos;re offline. Showing data saved on this device.</ThemedText>
         </ThemedView>
       )}
 

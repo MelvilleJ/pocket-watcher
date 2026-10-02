@@ -1,0 +1,1 @@
+ALTER TABLE "depo_transfers" ADD COLUMN "fee" numeric(12, 2) DEFAULT '0' NOT NULL;

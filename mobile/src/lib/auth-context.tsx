@@ -37,7 +37,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       // Hydrate from the last-known profile first so the app is usable
-      // immediately, even with no network — the token alone is proof enough
+      // immediately, even with no network. The token alone is proof enough
       // of a prior successful login.
       const cached = await getCachedUser();
       if (cached) {
@@ -52,13 +52,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setOffline(false);
       } catch (e) {
         if (e instanceof ApiError && (e.status === 401 || e.status === 403)) {
-          // The token itself was rejected by the server — it's genuinely
+          // The token itself was rejected by the server, so it's genuinely
           // invalid or revoked, not just unreachable. Log out for real.
           await clearToken();
           setUser(null);
         } else if (!cached) {
           // No cached profile to fall back on and we couldn't reach the
-          // server either — nothing to show.
+          // server either, so there's nothing to show.
           setUser(null);
         } else {
           // Couldn't reach the server (offline, DNS, timeout, 5xx). Keep

@@ -11,7 +11,7 @@ import {
   uniqueIndex,
   index,
 } from "drizzle-orm/pg-core";
-import { relations } from "drizzle-orm";
+import { relations, sql } from "drizzle-orm";
 
 export const billingCycleEnum = pgEnum("billing_cycle", [
   "weekly",
@@ -43,6 +43,14 @@ export const budgetLineKindEnum = pgEnum("budget_line_kind", [
   "debt",
   "goal",
   "subscription",
+]);
+
+export const depoKindEnum = pgEnum("depo_kind", [
+  "cash",
+  "bank",
+  "credit_union",
+  "wallet",
+  "other",
 ]);
 
 export const users = pgTable("users", {
@@ -106,6 +114,36 @@ const syncColumns = {
   deletedAt: timestamp("deleted_at", { withTimezone: true }),
 };
 
+export const depos = pgTable("depos", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  kind: depoKindEnum("kind").notNull().default("bank"),
+  color: text("color").notNull(),
+  icon: text("icon").notNull(),
+  openingBalance: numeric("opening_balance", { precision: 12, scale: 2 }).notNull().default("0"),
+  ...syncColumns,
+}, (t) => [
+  index("depos_user_idx").on(t.userId),
+  uniqueIndex("depos_client_idx").on(t.userId, t.clientId),
+  uniqueIndex("depos_user_name_idx").on(t.userId, t.name).where(sql`${t.deletedAt} is null`),
+]);
+
+export const depoTransfers = pgTable("depo_transfers", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  fromDepoId: uuid("from_depo_id").notNull().references(() => depos.id, { onDelete: "cascade" }),
+  toDepoId: uuid("to_depo_id").notNull().references(() => depos.id, { onDelete: "cascade" }),
+  date: timestamp("date", { withTimezone: true }).notNull(),
+  amount: numeric("amount", { precision: 12, scale: 2 }).notNull(),
+  fee: numeric("fee", { precision: 12, scale: 2 }).notNull().default("0"),
+  description: text("description"),
+  ...syncColumns,
+}, (t) => [
+  index("depo_transfers_user_date_idx").on(t.userId, t.date),
+  uniqueIndex("depo_transfers_client_idx").on(t.userId, t.clientId),
+]);
+
 export const income = pgTable("income", {
   id: uuid("id").defaultRandom().primaryKey(),
   userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
@@ -113,6 +151,7 @@ export const income = pgTable("income", {
   appliedMonth: text("applied_month"),
   sourceId: uuid("source_id").references(() => incomeSources.id, { onDelete: "set null" }),
   sourceName: text("source_name").notNull(),
+  depoId: uuid("depo_id").references(() => depos.id, { onDelete: "set null" }),
   description: text("description"),
   amount: numeric("amount", { precision: 12, scale: 2 }).notNull(),
   notes: text("notes"),
@@ -120,6 +159,7 @@ export const income = pgTable("income", {
 }, (t) => [
   index("income_user_date_idx").on(t.userId, t.date),
   index("income_user_applied_month_idx").on(t.userId, t.appliedMonth),
+  index("income_depo_idx").on(t.depoId),
   uniqueIndex("income_client_idx").on(t.userId, t.clientId),
 ]);
 
@@ -129,14 +169,18 @@ export const expenses = pgTable("expenses", {
   date: timestamp("date", { withTimezone: true }).notNull(),
   categoryId: uuid("category_id").references(() => expenseCategories.id, { onDelete: "set null" }),
   categoryName: text("category_name").notNull(),
+  depoId: uuid("depo_id").references(() => depos.id, { onDelete: "set null" }),
   description: text("description"),
   amount: numeric("amount", { precision: 12, scale: 2 }).notNull(),
   paid: boolean("paid").notNull().default(true),
+  subscriptionId: uuid("subscription_id").references(() => subscriptions.id, { onDelete: "set null" }),
   notes: text("notes"),
   ...syncColumns,
 }, (t) => [
   index("expenses_user_date_idx").on(t.userId, t.date),
+  index("expenses_depo_idx").on(t.depoId),
   uniqueIndex("expenses_client_idx").on(t.userId, t.clientId),
+  uniqueIndex("expenses_subscription_date_idx").on(t.subscriptionId, t.date),
 ]);
 
 export const subscriptions = pgTable("subscriptions", {
@@ -150,6 +194,8 @@ export const subscriptions = pgTable("subscriptions", {
   startDate: timestamp("start_date", { withTimezone: true }).notNull(),
   endDate: timestamp("end_date", { withTimezone: true }),
   status: subscriptionStatusEnum("status").notNull().default("active"),
+  // Charges dated before this are generated as already paid, so backfilled history isn't left unconfirmed.
+  paymentsTrackedFrom: timestamp("payments_tracked_from", { withTimezone: true }).notNull().defaultNow(),
   notes: text("notes"),
   ...syncColumns,
 }, (t) => [
@@ -263,6 +309,7 @@ export const usersRelations = relations(users, ({ many }) => ({
   subscriptions: many(subscriptions),
   debts: many(debts),
   goals: many(goals),
+  depos: many(depos),
 }));
 
 export const debtsRelations = relations(debts, ({ many }) => ({

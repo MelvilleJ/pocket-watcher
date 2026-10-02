@@ -9,6 +9,9 @@ import { calcMonthlyCost } from "@/lib/finance/subscriptions";
 import { BudgetLineRow } from "@/components/forms/budget-line-row";
 import { SubscriptionBudgetLineRow } from "@/components/forms/subscription-budget-line-row";
 import SaveAllButton from "@/components/save-all-button";
+import { StatTile } from "@/components/stat-tile";
+import { StepLink } from "@/components/year-picker";
+import { PageHero } from "@/components/page-hero";
 
 const MONTH_NAMES = [
   "January", "February", "March", "April", "May", "June",
@@ -28,9 +31,17 @@ export default async function BudgetPage({
   const params = await searchParams;
 
   const now = new Date();
-  const year = params.year ? Number(params.year) : now.getFullYear();
-  const monthIndex = params.month ? Number(params.month) : now.getMonth();
+  const requestedYear = Number(params.year);
+  const requestedMonth = Number(params.month);
+  const year = params.year && Number.isInteger(requestedYear) ? requestedYear : now.getFullYear();
+  const monthIndex =
+    params.month && Number.isInteger(requestedMonth) && requestedMonth >= 0 && requestedMonth <= 11
+      ? requestedMonth
+      : now.getMonth();
   const month = monthIndex + 1;
+  const previousPeriod = new Date(year, monthIndex - 1, 1);
+  const nextPeriod = new Date(year, monthIndex + 1, 1);
+  const periodHref = (date: Date) => `/dashboard/budget?year=${date.getFullYear()}&month=${date.getMonth()}`;
 
   await ensureDraftBudget(year, month);
   const data = await getBudgetForPeriod(user.id, year, month);
@@ -78,68 +89,74 @@ export default async function BudgetPage({
   const totalActualExpenses = actualExpense + actualSubscriptions;
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">
-            Budget — {MONTH_NAMES[monthIndex]} {year}
-          </h1>
-          <p className="text-sm text-zinc-500 dark:text-zinc-400">
-            {isLocked
-              ? "This budget is locked. Actuals are tracked against the amounts you committed to."
-              : "Plan your budget before the month starts, then lock it in."}
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
-          <SaveAllButton />
-          {isLocked ? (
-            <form action={unlockBudget.bind(null, budget.id)}>
-              <button
-                type="submit"
-                className="rounded-md border border-black/15 dark:border-white/15 px-3 py-1.5 text-sm font-medium"
-              >
-                Unlock to edit
-              </button>
-            </form>
-          ) : (
-            <form action={lockBudget.bind(null, budget.id)}>
-              <button
-                type="submit"
-                className="rounded-md bg-[color:var(--status-good)] px-3 py-1.5 text-sm font-medium text-white"
-              >
-                Lock budget
-              </button>
-            </form>
-          )}
-        </div>
-      </div>
+    <div className="page-accent-budget flex flex-col gap-6">
+      <PageHero
+        title={`Budget: ${MONTH_NAMES[monthIndex]} ${year}`}
+        description={
+          isLocked
+            ? "This budget is locked. Actuals are tracked against the amounts you committed to."
+            : "Plan your budget before the month starts, then lock it in."
+        }
+        iconPath="M6 4h12a3 3 0 0 1 3 3v10a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3V7a3 3 0 0 1 3-3ZM7 9h10M7 14h4M15 14h2"
+        actions={
+          <>
+            <div className="year-picker" role="group" aria-label="Choose month">
+              <StepLink href={periodHref(previousPeriod)} label="Previous month" direction="previous" />
+              <span className="period-label">
+                {MONTH_NAMES[monthIndex].slice(0, 3)} {year}
+              </span>
+              <StepLink href={periodHref(nextPeriod)} label="Next month" direction="next" />
+            </div>
+            <SaveAllButton />
+            {isLocked ? (
+              <form action={unlockBudget.bind(null, budget.id)}>
+                <button
+                  type="submit"
+                  className="rounded-md border border-black/15 dark:border-white/15 px-3 py-1.5 text-sm font-medium"
+                >
+                  Unlock to edit
+                </button>
+              </form>
+            ) : (
+              <form action={lockBudget.bind(null, budget.id)}>
+                <button
+                  type="submit"
+                  className="rounded-md bg-[color:var(--status-good)] px-3 py-1.5 text-sm font-medium text-white"
+                >
+                  Lock budget
+                </button>
+              </form>
+            )}
+          </>
+        }
+      />
 
-      <section className="grid grid-cols-2 gap-4 sm:grid-cols-5">
-        <div className="rounded-xl border border-black/10 dark:border-white/10 bg-white dark:bg-zinc-950 px-5 py-4">
-          <p className="text-sm text-zinc-500">Planned income</p>
-          <p className="mt-1 text-xl font-semibold tabular-nums">{formatCurrency(plannedIncome, user.currency)}</p>
-          <p className="text-xs text-zinc-500">Actual: {formatCurrency(actualIncome, user.currency)}</p>
-        </div>
-        <div className="rounded-xl border border-black/10 dark:border-white/10 bg-white dark:bg-zinc-950 px-5 py-4">
-          <p className="text-sm text-zinc-500">Total planned expenses</p>
-          <p className="mt-1 text-xl font-semibold tabular-nums">{formatCurrency(totalPlannedExpenses, user.currency)}</p>
-          <p className="text-xs text-zinc-500">Actual: {formatCurrency(totalActualExpenses, user.currency)}</p>
-        </div>
-        <div className="rounded-xl border border-black/10 dark:border-white/10 bg-white dark:bg-zinc-950 px-5 py-4">
-          <p className="text-sm text-zinc-500">Planned subscriptions</p>
-          <p className="mt-1 text-xl font-semibold tabular-nums">{formatCurrency(plannedSubscriptions, user.currency)}</p>
-          <p className="text-xs text-zinc-500">Actual: {formatCurrency(actualSubscriptions, user.currency)}</p>
-        </div>
-        <div className="rounded-xl border border-black/10 dark:border-white/10 bg-white dark:bg-zinc-950 px-5 py-4">
-          <p className="text-sm text-zinc-500">Planned debt payments</p>
-          <p className="mt-1 text-xl font-semibold tabular-nums">{formatCurrency(plannedDebt, user.currency)}</p>
-          <p className="text-xs text-zinc-500">Actual: {formatCurrency(actualDebt, user.currency)}</p>
-        </div>
-        <div className="rounded-xl border border-black/10 dark:border-white/10 bg-white dark:bg-zinc-950 px-5 py-4">
-          <p className="text-sm text-zinc-500">Planned goal payments</p>
-          <p className="mt-1 text-xl font-semibold tabular-nums">{formatCurrency(plannedGoals, user.currency)}</p>
-          <p className="text-xs text-zinc-500">Actual: {formatCurrency(actualGoals, user.currency)}</p>
-        </div>
+      <section className="stat-grid grid">
+        <StatTile
+          label="Planned income"
+          value={formatCurrency(plannedIncome, user.currency)}
+          detail={`Actual: ${formatCurrency(actualIncome, user.currency)}`}
+        />
+        <StatTile
+          label="Total planned expenses"
+          value={formatCurrency(totalPlannedExpenses, user.currency)}
+          detail={`Actual: ${formatCurrency(totalActualExpenses, user.currency)}`}
+        />
+        <StatTile
+          label="Planned subscriptions"
+          value={formatCurrency(plannedSubscriptions, user.currency)}
+          detail={`Actual: ${formatCurrency(actualSubscriptions, user.currency)}`}
+        />
+        <StatTile
+          label="Planned debt payments"
+          value={formatCurrency(plannedDebt, user.currency)}
+          detail={`Actual: ${formatCurrency(actualDebt, user.currency)}`}
+        />
+        <StatTile
+          label="Planned goal payments"
+          value={formatCurrency(plannedGoals, user.currency)}
+          detail={`Actual: ${formatCurrency(actualGoals, user.currency)}`}
+        />
       </section>
 
       <section className="overflow-x-auto rounded-xl border border-black/10 dark:border-white/10 bg-white dark:bg-zinc-950">
@@ -177,7 +194,7 @@ export default async function BudgetPage({
           <h2 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">
             Expenses by category
           </h2>
-          <p className="text-xs text-zinc-500">Day-to-day spending only — subscriptions, debt payments, and goal payments are tracked separately below.</p>
+          <p className="text-xs text-zinc-500">Day-to-day spending only. Subscriptions, debt payments, and goal payments are tracked separately below.</p>
         </div>
         <table className="w-full text-sm">
           <thead>
@@ -209,7 +226,7 @@ export default async function BudgetPage({
         <div className="border-b border-black/10 dark:border-white/10 px-4 py-3">
           <h2 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">Subscriptions</h2>
           <p className="text-xs text-zinc-500">
-            Every active subscription is added here automatically at its known cost — just say
+            Every active subscription is added here automatically at its known cost. Just say
             whether you&apos;re paying it this month. Cancelled ones drop off once you unlock or
             re-plan a budget.
           </p>

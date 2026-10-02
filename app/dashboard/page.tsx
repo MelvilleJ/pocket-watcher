@@ -2,7 +2,11 @@ import Link from "next/link";
 import { requireUser } from "@/lib/auth/dal";
 import { getCategoryBreakdown, getMoneyInOutSummary, getMonthByMonthSummary } from "@/lib/queries/summary";
 import { getDebtsWithBalances } from "@/lib/queries/debts";
+import { listDeposWithBalances } from "@/lib/queries/depos";
+import { depoKindLabel } from "@/lib/depos";
+import { DepoBadge } from "@/components/depo-icon";
 import { StatTile } from "@/components/stat-tile";
+import { PageHero } from "@/components/page-hero";
 import { MoneyFlowChart } from "@/components/charts/money-flow-chart";
 import { CategoryBreakdownChart } from "@/components/charts/category-breakdown-chart";
 
@@ -40,23 +44,20 @@ function SectionHeader({ title, subtitle }: { title: string; subtitle?: string }
   );
 }
 
-export default async function SummaryPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ year?: string; month?: string }>;
-}) {
+export default async function SummaryPage() {
   const user = await requireUser();
-  const params = await searchParams;
 
   const now = new Date();
-  const year = params.year ? Number(params.year) : now.getFullYear();
-  const monthIndex = params.month ? Number(params.month) : now.getMonth();
+  const year = now.getFullYear();
+  const monthIndex = now.getMonth();
+  const nextMonth = new Date(year, monthIndex + 1, 1);
 
-  const [{ selected, ytd }, months, categories, debts] = await Promise.all([
+  const [{ selected, ytd }, months, categories, debts, depos] = await Promise.all([
     getMoneyInOutSummary(user.id, year, monthIndex),
     getMonthByMonthSummary(user.id, year),
     getCategoryBreakdown(user.id, year, monthIndex),
     getDebtsWithBalances(user.id),
+    listDeposWithBalances(user.id),
   ]);
 
   const savingsRate = Number(user.savingsRate);
@@ -64,6 +65,7 @@ export default async function SummaryPage({
   const savings = net > 0 ? net * savingsRate : 0;
   const funMoney = net > 0 ? net - savings : 0;
   const outstandingDebt = debts.reduce((sum, d) => sum + d.currentBalance, 0);
+  const depoTotal = depos.reduce((sum, d) => sum + d.balance, 0);
 
   const chartData = months.map((m) => ({
     label: MONTH_NAMES[m.month.getMonth()].slice(0, 3),
@@ -85,19 +87,18 @@ export default async function SummaryPage({
   ];
 
   return (
-    <div className="flex flex-col gap-5">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1 className="text-[26px] font-bold tracking-[-0.02em] text-[color:var(--foreground)]">
-            {MONTH_NAMES[monthIndex]} {year}
-          </h1>
-          <p className="mt-1 text-sm text-[color:var(--muted)]">
-            Everything here is calculated from your Income, Expenses, Subscriptions, and Debts logs.
-          </p>
-        </div>
-      </div>
+    <div className="page-accent-summary flex flex-col gap-6">
+      <PageHero
+        title={`${MONTH_NAMES[monthIndex]} ${year}`}
+        description="Everything here is calculated from your Transactions, Subscriptions, and Debts logs."
+        iconPath="m3 10 9-7 9 7M5 9v11h14V9M9 20v-7h6v7"
+        stats={[
+          { label: "Across depos", value: formatCurrency(depoTotal, user.currency) },
+          { label: "Net this month", value: formatCurrency(net, user.currency) },
+        ]}
+      />
 
-      <section className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+      <section className="stat-grid grid">
         <StatTile
           label="Income"
           value={formatCurrency(selected.income, user.currency)}
@@ -139,6 +140,47 @@ export default async function SummaryPage({
       </section>
 
       <section>
+        <SectionHeader title="Where your money is" subtitle={`${formatCurrency(depoTotal, user.currency)} across ${depos.length} depo${depos.length === 1 ? "" : "s"}`} />
+        {depos.length > 0 ? (
+          <div className="depo-cards">
+            {depos.map((depo) => (
+              <Link
+                key={depo.id}
+                href={`/dashboard/transactions?depo=${depo.id}`}
+                className="depo-card"
+                style={{ "--depo-color": depo.color } as React.CSSProperties}
+              >
+                <div className="flex items-center gap-2.5">
+                  <DepoBadge icon={depo.icon} color={depo.color} />
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-semibold text-[color:var(--foreground)]">{depo.name}</p>
+                    <p className="text-[11px] text-[color:var(--muted-soft)]">{depoKindLabel(depo.kind)}</p>
+                  </div>
+                </div>
+                <p
+                  className={`depo-card-balance ${depo.balance < 0 ? "text-[color:var(--status-critical)]" : ""}`}
+                >
+                  {formatCurrency(depo.balance, user.currency)}
+                </p>
+                <span className="depo-card-share" aria-hidden="true">
+                  <span style={{ width: `${depoTotal > 0 ? Math.max(0, Math.min(100, (depo.balance / depoTotal) * 100)) : 0}%` }} />
+                </span>
+              </Link>
+            ))}
+          </div>
+        ) : (
+          <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-5">
+            <p className="text-sm text-[color:var(--muted)]">
+              Add depos like cash in hand, your bank, or a credit union to see where your money sits.
+            </p>
+            <Link href="/dashboard/transactions" className="text-sm font-medium underline">
+              Set up depos →
+            </Link>
+          </div>
+        )}
+      </section>
+
+      <section>
         <SectionHeader title={`${year} money in / money out`} subtitle="Month by month" />
         <div className="p-5">
           <MoneyFlowChart data={chartData} currency={user.currency} />
@@ -157,9 +199,9 @@ export default async function SummaryPage({
           </div>
         </section>
 
-        <section>
+        <section className="flex flex-col">
           <SectionHeader title="Year to date" subtitle={String(year)} />
-          <div className="flex h-full flex-col">
+          <div className="flex flex-1 flex-col">
             <dl className="flex flex-col">
               {ytdRows.map((row) => (
                 <div
@@ -184,10 +226,10 @@ export default async function SummaryPage({
               </div>
             </dl>
             <div className="mt-auto flex flex-col gap-2 px-5 pb-5 pt-4">
-              <Link href="/dashboard/budget" className="text-sm font-medium text-[color:var(--primary-deep)] underline decoration-[color:var(--border-strong)] underline-offset-4 hover:decoration-current">
+              <Link href={`/dashboard/budget?year=${nextMonth.getFullYear()}&month=${nextMonth.getMonth()}`} className="text-sm font-medium text-[color:var(--primary-deep)] underline decoration-[color:var(--border-strong)] underline-offset-4 hover:decoration-current">
                 Plan next month&apos;s budget →
               </Link>
-              <Link href="/dashboard/debts/roadmap" className="text-sm font-medium text-[color:var(--primary-deep)] underline decoration-[color:var(--border-strong)] underline-offset-4 hover:decoration-current">
+              <Link href="/dashboard/debts" className="text-sm font-medium text-[color:var(--primary-deep)] underline decoration-[color:var(--border-strong)] underline-offset-4 hover:decoration-current">
                 Plan your debt payoff roadmap →
               </Link>
             </div>

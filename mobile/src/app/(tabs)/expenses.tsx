@@ -4,19 +4,24 @@ import { FlatList, Pressable, StyleSheet, TextInput, View } from "react-native";
 
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
+import { NamePicker } from "@/components/name-picker";
 import { Spacing } from "@/constants/theme";
-import { addExpense, deleteExpense, listExpenses, type ExpenseRow } from "@/lib/models";
+import { addExpense, deleteExpense, listExpenses, listNameOptions, type ExpenseRow } from "@/lib/models";
 import { useAuth } from "@/lib/auth-context";
 
 export default function ExpensesScreen() {
   const { user } = useAuth();
   const router = useRouter();
   const [rows, setRows] = useState<ExpenseRow[]>([]);
+  const [categories, setCategories] = useState<string[]>([]);
   const [category, setCategory] = useState("");
   const [description, setDescription] = useState("");
   const [amount, setAmount] = useState("");
 
-  const load = useCallback(() => setRows(listExpenses()), []);
+  const load = useCallback(() => {
+    setRows(listExpenses());
+    setCategories(listNameOptions("expense_category"));
+  }, []);
   useFocusEffect(useCallback(() => { load(); }, [load]));
 
   function onAdd() {
@@ -32,7 +37,7 @@ export default function ExpensesScreen() {
   return (
     <ThemedView style={styles.container}>
       <View style={styles.form}>
-        <TextInput placeholder="Category (e.g. Groceries)" value={category} onChangeText={setCategory} style={styles.input} />
+        <NamePicker options={categories} value={category} onChange={setCategory} newPlaceholder="New category" />
         <TextInput placeholder="Description" value={description} onChangeText={setDescription} style={styles.input} />
         <TextInput placeholder="Amount" keyboardType="decimal-pad" value={amount} onChangeText={setAmount} style={styles.input} />
         <View style={styles.buttonRow}>

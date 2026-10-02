@@ -26,7 +26,7 @@ export default function DebtsScreen() {
     const rate = Number(interestRate);
     const minPay = Number(minPayment);
     if (!name.trim() || !Number.isFinite(original) || original <= 0) return;
-    addDebt({ name: name.trim(), originalAmount: original, interestRate: rate || 0, minMonthlyPayment: minPay || 0 });
+    addDebt({ name: name.trim(), originalAmount: original, interestRate: (rate || 0) / 100, minMonthlyPayment: minPay || 0 });
     setName("");
     setOriginalAmount("");
     setInterestRate("");
@@ -44,7 +44,7 @@ export default function DebtsScreen() {
       <View style={styles.form}>
         <TextInput placeholder="Debt name" value={name} onChangeText={setName} style={styles.input} />
         <TextInput placeholder="Original amount" keyboardType="decimal-pad" value={originalAmount} onChangeText={setOriginalAmount} style={styles.input} />
-        <TextInput placeholder="Interest rate (0.18 = 18%)" keyboardType="decimal-pad" value={interestRate} onChangeText={setInterestRate} style={styles.input} />
+        <TextInput placeholder="Interest rate (%)" keyboardType="decimal-pad" value={interestRate} onChangeText={setInterestRate} style={styles.input} />
         <TextInput placeholder="Min. monthly payment" keyboardType="decimal-pad" value={minPayment} onChangeText={setMinPayment} style={styles.input} />
         <Pressable style={styles.button} onPress={onAdd}>
           <ThemedText style={styles.buttonText}>Add debt</ThemedText>

@@ -11,7 +11,7 @@ import * as z from "zod";
 const SettingsSchema = z.object({
   name: z.string().min(2),
   currency: z.string().min(1).max(8),
-  savingsRate: z.coerce.number().min(0).max(1),
+  savingsRatePercent: z.coerce.number().min(0).max(100),
 });
 
 export type SettingsFormState = { error?: string } | undefined;
@@ -33,7 +33,7 @@ export async function updateSettings(
     .set({
       name: parsed.data.name,
       currency: parsed.data.currency,
-      savingsRate: parsed.data.savingsRate.toFixed(3),
+      savingsRate: (parsed.data.savingsRatePercent / 100).toFixed(3),
       updatedAt: new Date(),
     })
     .where(eq(users.id, user.id))

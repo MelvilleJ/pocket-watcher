@@ -4,18 +4,23 @@ import { FlatList, Pressable, StyleSheet, TextInput, View } from "react-native";
 
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
+import { NamePicker } from "@/components/name-picker";
 import { Spacing } from "@/constants/theme";
-import { addIncome, deleteIncome, listIncome, type IncomeRow } from "@/lib/models";
+import { addIncome, deleteIncome, listIncome, listNameOptions, type IncomeRow } from "@/lib/models";
 import { useAuth } from "@/lib/auth-context";
 
 export default function IncomeScreen() {
   const { user } = useAuth();
   const [rows, setRows] = useState<IncomeRow[]>([]);
+  const [sources, setSources] = useState<string[]>([]);
   const [source, setSource] = useState("");
   const [description, setDescription] = useState("");
   const [amount, setAmount] = useState("");
 
-  const load = useCallback(() => setRows(listIncome()), []);
+  const load = useCallback(() => {
+    setRows(listIncome());
+    setSources(listNameOptions("income_source"));
+  }, []);
   useFocusEffect(useCallback(() => { load(); }, [load]));
 
   function onAdd() {
@@ -31,7 +36,7 @@ export default function IncomeScreen() {
   return (
     <ThemedView style={styles.container}>
       <View style={styles.form}>
-        <TextInput placeholder="Source (e.g. Salary)" value={source} onChangeText={setSource} style={styles.input} />
+        <NamePicker options={sources} value={source} onChange={setSource} newPlaceholder="New source" />
         <TextInput placeholder="Description" value={description} onChangeText={setDescription} style={styles.input} />
         <TextInput placeholder="Amount" keyboardType="decimal-pad" value={amount} onChangeText={setAmount} style={styles.input} />
         <Pressable style={styles.button} onPress={onAdd}>

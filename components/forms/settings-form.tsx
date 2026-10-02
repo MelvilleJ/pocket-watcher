@@ -2,6 +2,8 @@
 
 import { useActionState } from "react";
 import { updateSettings } from "@/lib/actions/settings";
+import { CURRENCY_OPTIONS } from "@/lib/currencies";
+import { CreatableSelect } from "@/components/forms/creatable-select";
 
 export function SettingsForm({
   name,
@@ -13,6 +15,9 @@ export function SettingsForm({
   savingsRate: number;
 }) {
   const [state, action, pending] = useActionState(updateSettings, undefined);
+  const currencyOptions = CURRENCY_OPTIONS.some((o) => o.value === currency)
+    ? CURRENCY_OPTIONS
+    : [{ value: currency }, ...CURRENCY_OPTIONS];
 
   return (
     <form action={action} className="grid max-w-md gap-4">
@@ -29,29 +34,31 @@ export function SettingsForm({
         />
       </div>
       <div className="flex flex-col gap-1">
-        <label htmlFor="currency" className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
-          Currency symbol
-        </label>
-        <input
-          id="currency"
+        <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Currency</span>
+        <CreatableSelect
           name="currency"
+          options={currencyOptions}
           defaultValue={currency}
+          placeholder="Choose currency"
+          addLabel="Other…"
+          newPlaceholder="Symbol, e.g. R$"
+          maxLength={8}
           required
-          className="rounded-md border border-black/15 dark:border-white/15 bg-transparent px-3 py-2 text-sm"
+          className="w-full rounded-md border border-black/15 dark:border-white/15 bg-transparent px-3 py-2 text-sm"
         />
       </div>
       <div className="flex flex-col gap-1">
         <label htmlFor="savingsRate" className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
-          Savings rate (share of net income saved, e.g. 0.2 = 20%)
+          Savings rate (% of net income saved)
         </label>
         <input
           id="savingsRate"
-          name="savingsRate"
+          name="savingsRatePercent"
           type="number"
-          step="0.01"
+          step="0.1"
           min="0"
-          max="1"
-          defaultValue={savingsRate}
+          max="100"
+          defaultValue={Math.round(savingsRate * 1000) / 10}
           required
           className="rounded-md border border-black/15 dark:border-white/15 bg-transparent px-3 py-2 text-sm"
         />

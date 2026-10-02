@@ -2,14 +2,14 @@
 
 import { useMemo, useState } from "react";
 import { simulateDebtRoadmap, type RoadmapDebtInput } from "@/lib/finance/debt-roadmap";
-import { DebtRoadmapChart } from "@/components/charts/debt-roadmap-chart";
+import { RoadmapAreaChart } from "@/components/charts/roadmap-area-chart";
 
 function formatCurrency(value: number, currency: string) {
   return `${currency}${value.toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
 }
 
 function monthsFromNowLabel(months: number | null) {
-  if (months === null) return "—";
+  if (months === null) return "-";
   const years = Math.floor(months / 12);
   const rem = months % 12;
   if (years === 0) return `${rem} mo`;
@@ -47,11 +47,7 @@ export function DebtRoadmapPlanner({
   const interestSaved = snowball.totalInterestPaid - avalanche.totalInterestPaid;
 
   if (debts.length === 0) {
-    return (
-      <p className="text-sm text-zinc-500">
-        Add a debt on the Debts page to plan a payoff roadmap.
-      </p>
-    );
+    return <p className="text-sm text-zinc-500">Add debts to see a roadmap.</p>;
   }
 
   return (
@@ -71,7 +67,7 @@ export function DebtRoadmapPlanner({
           step={10}
           value={extraPayment}
           onChange={(e) => setExtraPayment(Number(e.target.value))}
-          className="mt-3 w-full accent-[color:var(--series-1)]"
+          className="mt-3 w-full"
         />
       </section>
 
@@ -80,7 +76,14 @@ export function DebtRoadmapPlanner({
           Total balance over time
         </h2>
         <div className="mt-4">
-          <DebtRoadmapChart data={chartData} currency={currency} />
+          <RoadmapAreaChart
+            data={chartData}
+            currency={currency}
+            series={[
+              { key: "avalanche", name: "Avalanche (highest interest first)", color: "var(--status-critical)" },
+              { key: "snowball", name: "Snowball (smallest balance first)", color: "var(--status-serious)" },
+            ]}
+          />
         </div>
         <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-400">
           {interestSaved > 0.5

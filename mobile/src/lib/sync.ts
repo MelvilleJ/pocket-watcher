@@ -1,5 +1,6 @@
 import { db, getSyncCursor, setSyncCursor } from "@/lib/db";
 import { apiFetch } from "@/lib/api";
+import { replaceNameOptions } from "@/lib/models";
 
 type Row = Record<string, unknown>;
 
@@ -181,7 +182,14 @@ export async function pullSync() {
     );
   }
 
+  replaceNameOptions("expense_category", activeNames(data.expenseCategories));
+  replaceNameOptions("income_source", activeNames(data.incomeSources));
+
   setSyncCursor(data.serverTime);
+}
+
+function activeNames(rows: { name: string; isArchived: boolean }[] = []) {
+  return rows.filter((r) => !r.isArchived).map((r) => r.name);
 }
 
 export async function fullSync() {

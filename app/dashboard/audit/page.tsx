@@ -1,9 +1,12 @@
 import { requireUser } from "@/lib/auth/dal";
 import { listAuditLogs } from "@/lib/queries/audit";
+import { PageHero } from "@/components/page-hero";
 
 const ENTITY_LABELS: Record<string, string> = {
   income: "Income",
   expense: "Expense",
+  depo: "Depo",
+  depo_transfer: "Depo transfer",
   subscription: "Subscription",
   debt: "Debt",
   debt_payment: "Debt payment",
@@ -24,13 +27,13 @@ export default async function AuditPage() {
   const logs = await listAuditLogs(user.id);
 
   return (
-    <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">History &amp; audit log</h1>
-        <p className="text-sm text-zinc-500 dark:text-zinc-400">
-          Every change made to your data, from either the web dashboard or the mobile app.
-        </p>
-      </div>
+    <div className="page-accent-history flex flex-col gap-6">
+      <PageHero
+        title="History & audit log"
+        description="Every change made to your data, from either the web dashboard or the mobile app."
+        iconPath="M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5M12 7v5l3 2"
+        stats={[{ label: "Recorded changes", value: logs.length.toLocaleString() }]}
+      />
 
       <section className="overflow-x-auto rounded-xl border border-black/10 dark:border-white/10 bg-white dark:bg-zinc-950">
         <table className="w-full text-sm">

@@ -71,6 +71,12 @@ export function initDatabase() {
       dirty INTEGER NOT NULL DEFAULT 1
     );
 
+    CREATE TABLE IF NOT EXISTS name_options (
+      kind TEXT NOT NULL,
+      name TEXT NOT NULL,
+      PRIMARY KEY (kind, name)
+    );
+
     CREATE TABLE IF NOT EXISTS sync_state (
       key TEXT PRIMARY KEY NOT NULL,
       value TEXT NOT NULL

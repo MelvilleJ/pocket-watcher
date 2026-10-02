@@ -6,12 +6,14 @@ export function StatTile({
   tone = "neutral",
   icon,
   accent,
+  detail,
 }: {
   label: string;
   value: string;
   tone?: "neutral" | "good" | "critical";
   icon?: ReactNode;
   accent?: string;
+  detail?: string;
 }) {
   const toneClass =
     tone === "good"
@@ -21,18 +23,21 @@ export function StatTile({
         : "text-[color:var(--foreground)]";
 
   return (
-    <div data-stat-tile className="stat-tile p-5">
+    <div data-stat-tile className="stat-tile">
       {icon && (
         <span
           className="stat-tile-icon"
           aria-hidden="true"
-          style={accent ? { color: accent, background: `color-mix(in srgb, ${accent} 13%, var(--surface-inset))` } : undefined}
+          style={accent ? { color: accent, background: 'transparent' } : undefined}
         >
           {icon}
         </span>
       )}
-      <p>{label}</p>
-      <p className={`mt-2 ${toneClass}`}>{value}</p>
+      <p className="stat-tile-label">{label}</p>
+      <p className={`stat-tile-value ${toneClass}`} title={value}>
+        {value}
+      </p>
+      {detail && <p className="stat-tile-detail">{detail}</p>}
     </div>
   );
 }

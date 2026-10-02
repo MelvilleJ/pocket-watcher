@@ -4,8 +4,9 @@ import { FlatList, Pressable, StyleSheet, TextInput, View } from "react-native";
 
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
+import { NamePicker } from "@/components/name-picker";
 import { Spacing } from "@/constants/theme";
-import { addSubscription, listSubscriptions, type SubscriptionRow } from "@/lib/models";
+import { addSubscription, listNameOptions, listSubscriptions, type SubscriptionRow } from "@/lib/models";
 import { useAuth } from "@/lib/auth-context";
 
 const CYCLES = ["monthly", "weekly", "fortnightly", "quarterly", "half_yearly", "yearly"];
@@ -14,11 +15,15 @@ export default function SubscriptionsScreen() {
   const { user } = useAuth();
   const [rows, setRows] = useState<SubscriptionRow[]>([]);
   const [name, setName] = useState("");
+  const [categories, setCategories] = useState<string[]>([]);
   const [category, setCategory] = useState("");
   const [amount, setAmount] = useState("");
   const [cycle, setCycle] = useState("monthly");
 
-  const load = useCallback(() => setRows(listSubscriptions()), []);
+  const load = useCallback(() => {
+    setRows(listSubscriptions());
+    setCategories(listNameOptions("expense_category"));
+  }, []);
   useFocusEffect(useCallback(() => { load(); }, [load]));
 
   function onAdd() {
@@ -41,7 +46,7 @@ export default function SubscriptionsScreen() {
     <ThemedView style={styles.container}>
       <View style={styles.form}>
         <TextInput placeholder="Subscription name" value={name} onChangeText={setName} style={styles.input} />
-        <TextInput placeholder="Category" value={category} onChangeText={setCategory} style={styles.input} />
+        <NamePicker options={categories} value={category} onChange={setCategory} newPlaceholder="New category" />
         <TextInput placeholder="Billed amount" keyboardType="decimal-pad" value={amount} onChangeText={setAmount} style={styles.input} />
         <View style={styles.cycleRow}>
           {CYCLES.map((c) => (
