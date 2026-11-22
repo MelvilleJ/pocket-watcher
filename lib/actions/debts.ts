@@ -9,7 +9,7 @@ import { requireUser } from "@/lib/auth/dal";
 import { recordAudit } from "@/lib/audit";
 import { DebtSchema, DebtPaymentSchema, type FormState } from "@/lib/validation/entities";
 import { parseLocalDate } from "@/lib/utils/date";
-import { syncBudgetLinesForUser } from "@/lib/actions/budgets";
+import { syncBudgetLinesForUser } from "@/lib/budgets";
 
 export async function createDebt(
   _state: FormState,

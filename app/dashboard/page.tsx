@@ -5,10 +5,11 @@ import { getDebtsWithBalances } from "@/lib/queries/debts";
 import { listDeposWithBalances } from "@/lib/queries/depos";
 import { depoKindLabel } from "@/lib/depos";
 import { DepoBadge } from "@/components/depo-icon";
-import { StatTile } from "@/components/stat-tile";
+import { FocalPanel } from "@/components/focal-panel";
+import { Money } from "@/components/money";
 import { PageHero } from "@/components/page-hero";
 import { MoneyFlowChart } from "@/components/charts/money-flow-chart";
-import { CategoryBreakdownChart } from "@/components/charts/category-breakdown-chart";
+import { ExpensePieChart } from "@/components/charts/expense-pie-chart";
 
 const MONTH_NAMES = [
   "January", "February", "March", "April", "May", "June",
@@ -17,22 +18,6 @@ const MONTH_NAMES = [
 
 function formatCurrency(value: number, currency: string) {
   return `${currency}${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-}
-
-function TileIcon({ path }: { path: string }) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.7"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <path d={path} />
-    </svg>
-  );
 }
 
 function SectionHeader({ title, subtitle }: { title: string; subtitle?: string }) {
@@ -86,58 +71,123 @@ export default async function SummaryPage() {
     { label: "Debt payments", value: ytd.debtPayments },
   ];
 
+  const spentShare = selected.income > 0 ? selected.totalOut / selected.income : 0;
+
   return (
-    <div className="page-accent-summary flex flex-col gap-6">
+    <div className="flex flex-col gap-6">
       <PageHero
         title={`${MONTH_NAMES[monthIndex]} ${year}`}
-        description="Everything here is calculated from your Transactions, Subscriptions, and Debts logs."
-        iconPath="m3 10 9-7 9 7M5 9v11h14V9M9 20v-7h6v7"
-        stats={[
-          { label: "Across depos", value: formatCurrency(depoTotal, user.currency) },
-          { label: "Net this month", value: formatCurrency(net, user.currency) },
-        ]}
+        description="Calculated from your transactions, subscriptions and debts. Set aside and fun money split this month's net at your savings rate."
       />
 
-      <section className="stat-grid grid">
-        <StatTile
-          label="Income"
-          value={formatCurrency(selected.income, user.currency)}
-          accent="var(--status-good)"
-          icon={<TileIcon path="M12 4v14m0 0 5-5m-5 5-5-5M5 21h14" />}
-        />
-        <StatTile
-          label="Money out"
-          value={formatCurrency(selected.totalOut, user.currency)}
-          accent="var(--status-critical)"
-          icon={<TileIcon path="M12 20V6m0 0-5 5m5-5 5 5M5 3h14" />}
-        />
-        <StatTile
-          label="Net"
-          value={formatCurrency(net, user.currency)}
-          tone={net >= 0 ? "good" : "critical"}
-          accent={net >= 0 ? "var(--status-good)" : "var(--status-critical)"}
-          icon={<TileIcon path="M3 16.5 9.5 10l3.5 3.5L21 6m0 0h-5.5M21 6v5.5" />}
-        />
-        <StatTile
-          label="Savings"
-          value={formatCurrency(savings, user.currency)}
-          accent="var(--primary)"
-          icon={<TileIcon path="M12 3v18M17 6.5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />}
-        />
-        <StatTile
-          label="Fun money"
-          value={formatCurrency(funMoney, user.currency)}
-          accent="var(--aqua)"
-          icon={<TileIcon path="M12 3.5 13.9 9l5.6 1.9-5.6 1.9L12 18.5l-1.9-5.7-5.6-1.9L10.1 9 12 3.5ZM5 4.5v3M3.5 6h3M18.5 15.5v3M17 17h3" />}
-        />
-        <StatTile
-          label="Outstanding debt"
-          value={formatCurrency(outstandingDebt, user.currency)}
-          tone={outstandingDebt > 0 ? "critical" : "good"}
-          accent="var(--status-critical)"
-          icon={<TileIcon path="M12 3.5a8.5 8.5 0 1 0 0 17 8.5 8.5 0 0 0 0-17ZM12 7.5v5.5M12 16.5h.01" />}
-        />
+      <FocalPanel
+        label="Net this month"
+        value={
+          <Money
+            currency={user.currency}
+            amount={net}
+            className={`money-display ${net >= 0 ? "text-[color:var(--status-good)]" : "text-[color:var(--status-critical)]"}`}
+          />
+        }
+        rows={[
+          {
+            label: "Income",
+            value: <Money currency={user.currency} amount={selected.income} className="text-[color:var(--status-good)]" />,
+          },
+          { label: "Money out", value: <Money currency={user.currency} amount={selected.totalOut} /> },
+          {
+            label: `Set aside (${Math.round(savingsRate * 100)}%)`,
+            value: <Money currency={user.currency} amount={savings} />,
+          },
+          { label: "Fun money", value: <Money currency={user.currency} amount={funMoney} /> },
+        ]}
+        progress={selected.income > 0 ? Math.min(spentShare, 1) : undefined}
+        progressLabel={
+          selected.income > 0 ? `${Math.round(spentShare * 100)}% of this month's income spent` : undefined
+        }
+      />
+
+      <div className="glance-grid">
+        <Link href="/dashboard/transactions" className="glance-card">
+          <span className="glance-label">Across your depos</span>
+          <Money
+            currency={user.currency}
+            amount={depoTotal}
+            className={`money-display glance-value ${depoTotal < 0 ? "text-[color:var(--status-critical)]" : ""}`}
+          />
+          <span className="glance-detail">
+            {depos.length} depo{depos.length === 1 ? "" : "s"}. Open transactions
+          </span>
+        </Link>
+        <Link href="/dashboard/debts" className="glance-card">
+          <span className="glance-label">Outstanding debt</span>
+          <Money
+            currency={user.currency}
+            amount={outstandingDebt}
+            className={`money-display glance-value ${outstandingDebt > 0 ? "text-[color:var(--status-critical)]" : "text-[color:var(--status-good)]"}`}
+          />
+          <span className="glance-detail">
+            {debts.length > 0 ? `${debts.length} debt${debts.length === 1 ? "" : "s"}. Open the payoff roadmap` : "No debts logged"}
+          </span>
+        </Link>
+        <Link
+          href={`/dashboard/budget?year=${nextMonth.getFullYear()}&month=${nextMonth.getMonth()}`}
+          className="glance-card"
+        >
+          <span className="glance-label">Next month</span>
+          <span className="glance-value glance-text">{MONTH_NAMES[nextMonth.getMonth()]}</span>
+          <span className="glance-detail">Plan the budget before it starts</span>
+        </Link>
+      </div>
+
+      <section>
+        <SectionHeader title={`Money in vs money out each month, ${year}`} />
+        <div className="p-5">
+          <MoneyFlowChart data={chartData} currency={user.currency} year={year} />
+        </div>
       </section>
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        <section>
+          <SectionHeader title={`Where ${MONTH_NAMES[monthIndex]}'s spending went`} />
+          <div className="p-5">
+            {categoryChartData.length > 0 ? (
+              <ExpensePieChart data={categoryChartData} currency={user.currency} />
+            ) : (
+              <p className="text-sm text-[color:var(--muted)]">No expenses logged this month yet.</p>
+            )}
+          </div>
+        </section>
+
+        <section className="flex flex-col">
+          <SectionHeader title="Year to date" subtitle={String(year)} />
+          <div className="flex flex-1 flex-col">
+            <dl className="flex flex-col">
+              {ytdRows.map((row) => (
+                <div
+                  key={row.label}
+                  className="flex items-center justify-between border-b border-[color:var(--border)] px-5 py-2.5 text-sm"
+                >
+                  <dt className="text-[color:var(--muted)]">{row.label}</dt>
+                  <dd className="font-medium tabular-nums text-[color:var(--foreground)]">
+                    {formatCurrency(row.value, user.currency)}
+                  </dd>
+                </div>
+              ))}
+              <div className="flex items-center justify-between px-5 py-3">
+                <dt className="text-sm font-semibold text-[color:var(--foreground)]">Net</dt>
+                <dd
+                  className={`text-[15px] font-bold tabular-nums ${
+                    ytd.net >= 0 ? "text-[color:var(--status-good)]" : "text-[color:var(--status-critical)]"
+                  }`}
+                >
+                  {formatCurrency(ytd.net, user.currency)}
+                </dd>
+              </div>
+            </dl>
+          </div>
+        </section>
+      </div>
 
       <section>
         <SectionHeader title="Where your money is" subtitle={`${formatCurrency(depoTotal, user.currency)} across ${depos.length} depo${depos.length === 1 ? "" : "s"}`} />
@@ -174,68 +224,11 @@ export default async function SummaryPage() {
               Add depos like cash in hand, your bank, or a credit union to see where your money sits.
             </p>
             <Link href="/dashboard/transactions" className="text-sm font-medium underline">
-              Set up depos →
+              Set up depos
             </Link>
           </div>
         )}
       </section>
-
-      <section>
-        <SectionHeader title={`${year} money in / money out`} subtitle="Month by month" />
-        <div className="p-5">
-          <MoneyFlowChart data={chartData} currency={user.currency} />
-        </div>
-      </section>
-
-      <div className="grid gap-4 lg:grid-cols-2">
-        <section>
-          <SectionHeader title="Expenses by category" subtitle={MONTH_NAMES[monthIndex]} />
-          <div className="p-5">
-            {categoryChartData.length > 0 ? (
-              <CategoryBreakdownChart data={categoryChartData} currency={user.currency} />
-            ) : (
-              <p className="text-sm text-[color:var(--muted)]">No expenses logged this month yet.</p>
-            )}
-          </div>
-        </section>
-
-        <section className="flex flex-col">
-          <SectionHeader title="Year to date" subtitle={String(year)} />
-          <div className="flex flex-1 flex-col">
-            <dl className="flex flex-col">
-              {ytdRows.map((row) => (
-                <div
-                  key={row.label}
-                  className="flex items-center justify-between border-b border-[color:var(--border)] px-5 py-2.5 text-sm"
-                >
-                  <dt className="text-[color:var(--muted)]">{row.label}</dt>
-                  <dd className="font-medium tabular-nums text-[color:var(--foreground)]">
-                    {formatCurrency(row.value, user.currency)}
-                  </dd>
-                </div>
-              ))}
-              <div className="flex items-center justify-between px-5 py-3">
-                <dt className="text-sm font-semibold text-[color:var(--foreground)]">Net</dt>
-                <dd
-                  className={`text-[15px] font-bold tabular-nums ${
-                    ytd.net >= 0 ? "text-[color:var(--status-good)]" : "text-[color:var(--status-critical)]"
-                  }`}
-                >
-                  {formatCurrency(ytd.net, user.currency)}
-                </dd>
-              </div>
-            </dl>
-            <div className="mt-auto flex flex-col gap-2 px-5 pb-5 pt-4">
-              <Link href={`/dashboard/budget?year=${nextMonth.getFullYear()}&month=${nextMonth.getMonth()}`} className="text-sm font-medium text-[color:var(--primary-deep)] underline decoration-[color:var(--border-strong)] underline-offset-4 hover:decoration-current">
-                Plan next month&apos;s budget →
-              </Link>
-              <Link href="/dashboard/debts" className="text-sm font-medium text-[color:var(--primary-deep)] underline decoration-[color:var(--border-strong)] underline-offset-4 hover:decoration-current">
-                Plan your debt payoff roadmap →
-              </Link>
-            </div>
-          </div>
-        </section>
-      </div>
     </div>
   );
 }

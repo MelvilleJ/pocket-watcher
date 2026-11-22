@@ -26,7 +26,7 @@ export function GoalsRoadmapPlanner({
   currency: string;
   minTotalContribution: number;
 }) {
-  const [monthlyAllocation, setMonthlyAllocation] = useState(minTotalContribution);
+  const [monthlyAllocation, setMonthlyAllocation] = useState(0);
 
   const largest = useMemo(
     () => simulateGoalsRoadmap(goals, monthlyAllocation, "largest"),
@@ -45,7 +45,7 @@ export function GoalsRoadmapPlanner({
   }));
 
   if (goals.length === 0) {
-    return <p className="text-sm text-zinc-500">Add goals to see a roadmap.</p>;
+    return <p className="text-sm text-[color:var(--muted)]">Add goals to see a roadmap.</p>;
   }
 
   return (
@@ -70,14 +70,22 @@ export function GoalsRoadmapPlanner({
       </section>
 
       <section className="rounded-xl border border-black/10 dark:border-white/10 bg-white dark:bg-zinc-950 p-5">
-        <h2 className="text-base font-semibold text-zinc-900 dark:text-zinc-50">Total remaining over time</h2>
+        <h2 className="text-base font-semibold text-zinc-900 dark:text-zinc-50">
+          When your goals are funded: largest vs smallest first
+        </h2>
         <div className="mt-4">
           <RoadmapAreaChart
             data={chartData}
             currency={currency}
+            summary={`Total left to save over time. Largest first funds every goal in ${monthsFromNowLabel(largest.completionMonth)}, smallest first in ${monthsFromNowLabel(smallest.completionMonth)}.`}
             series={[
-              { key: "largest", name: "Largest remaining first", color: "var(--series-7)" },
-              { key: "smallest", name: "Smallest remaining first", color: "var(--aqua)" },
+              { key: "largest", name: "Largest remaining first", color: "var(--primary)" },
+              {
+                key: "smallest",
+                name: "Smallest remaining first",
+                color: "var(--chart-text-secondary)",
+                dashed: true,
+              },
             ]}
           />
         </div>
@@ -103,12 +111,12 @@ function RoadmapTable({
   return (
     <section className="rounded-xl border border-black/10 dark:border-white/10 bg-white dark:bg-zinc-950 p-5">
       <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">{title}</h3>
-      <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+      <p className="mt-1 text-sm text-[color:var(--muted)] dark:text-zinc-400">
         All goals complete in {monthsFromNowLabel(result.completionMonth)} · Total contributed {formatCurrency(result.totalContributed, currency)}
       </p>
       <table className="mt-3 w-full text-sm">
         <thead>
-          <tr className="text-left text-zinc-500">
+          <tr className="text-left text-[color:var(--muted)]">
             <th className="py-1 font-medium">Goal</th>
             <th className="py-1 font-medium text-right">Completed in</th>
             <th className="py-1 font-medium text-right">Contributed</th>

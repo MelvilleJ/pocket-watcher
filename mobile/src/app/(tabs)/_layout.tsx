@@ -1,30 +1,33 @@
-import { Redirect, Tabs } from "expo-router";
-import { ActivityIndicator } from "react-native";
+import { Redirect } from "expo-router";
+import { Tabs } from "expo-router/js-tabs";
+import { ActivityIndicator, View } from "react-native";
 
-import { ThemedView } from "@/components/themed-view";
+import { AppHeader, NAV_ITEMS } from "@/components/app-header";
 import { useAuth } from "@/lib/auth-context";
+import { usePalette } from "@/lib/theme";
 
 export default function TabsLayout() {
   const { user, loading } = useAuth();
+  const palette = usePalette();
 
   if (loading) {
     return (
-      <ThemedView style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
-        <ActivityIndicator />
-      </ThemedView>
+      <View style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: palette.background }}>
+        <ActivityIndicator color={palette.primary} />
+      </View>
     );
   }
 
   if (!user) return <Redirect href="/login" />;
 
   return (
-    <Tabs screenOptions={{ headerShown: true }}>
-      <Tabs.Screen name="index" options={{ title: "Summary" }} />
-      <Tabs.Screen name="income" options={{ title: "Income" }} />
-      <Tabs.Screen name="expenses" options={{ title: "Expenses" }} />
-      <Tabs.Screen name="subscriptions" options={{ title: "Subscriptions" }} />
-      <Tabs.Screen name="debts" options={{ title: "Debts" }} />
-      <Tabs.Screen name="settings" options={{ title: "Settings" }} />
+    <Tabs
+      tabBar={(props) => <AppHeader {...props} />}
+      screenOptions={{ headerShown: false, tabBarPosition: "top", sceneStyle: { backgroundColor: palette.background } }}
+    >
+      {NAV_ITEMS.map((item) => (
+        <Tabs.Screen key={item.name} name={item.name} options={{ title: item.label }} />
+      ))}
     </Tabs>
   );
 }

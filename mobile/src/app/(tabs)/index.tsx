@@ -1,136 +1,217 @@
-import { useCallback, useState } from "react";
-import { useFocusEffect } from "expo-router";
-import { RefreshControl, ScrollView, StyleSheet } from "react-native";
+import { useRouter } from "expo-router";
+import { ActivityIndicator, Pressable, StyleSheet, View } from "react-native";
 
-import { ThemedText } from "@/components/themed-text";
-import { ThemedView } from "@/components/themed-view";
-import { Spacing } from "@/constants/theme";
-import { listDebts, listExpenses, listIncome, listSubscriptions, debtBalance } from "@/lib/models";
-import { fullSync } from "@/lib/sync";
+import { CategoryBreakdownChart, MoneyFlowChart } from "@/components/charts";
+import { DepoBadge } from "@/components/depos";
+import { EmptyState, FocalPanel, FocalRow, Notice, PageHero, ProgressBar, Screen, Section } from "@/components/ui/layout";
+import { Money } from "@/components/ui/money";
+import { AppText } from "@/components/ui/text";
+import { mix, Spacing } from "@/constants/theme";
 import { useAuth } from "@/lib/auth-context";
-
-function monthKey(date: Date) {
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
-}
+import { depoKindLabel } from "@/lib/finance/depos";
+import { formatCurrency, MONTH_NAMES } from "@/lib/format";
+import { useRemote } from "@/lib/remote";
+import type { SummaryResponse } from "@/lib/remote-types";
+import { usePalette } from "@/lib/theme";
 
 export default function SummaryScreen() {
-  const { user, offline } = useAuth();
-  const [refreshing, setRefreshing] = useState(false);
-  const [stats, setStats] = useState({ income: 0, expenses: 0, subscriptions: 0, debt: 0 });
-
-  const load = useCallback(() => {
-    const thisMonth = monthKey(new Date());
-
-    const income = listIncome()
-      .filter((r) => r.date.startsWith(thisMonth))
-      .reduce((sum, r) => sum + r.amount, 0);
-
-    const expenses = listExpenses()
-      .filter((r) => r.date.startsWith(thisMonth))
-      .reduce((sum, r) => sum + r.amount, 0);
-
-    const subscriptions = listSubscriptions()
-      .filter((r) => r.status === "active")
-      .reduce((sum, r) => sum + r.billed_amount, 0);
-
-    const debt = listDebts().reduce((sum, d) => sum + debtBalance(d.id, d.original_amount), 0);
-
-    setStats({ income, expenses, subscriptions, debt });
-  }, []);
-
-  useFocusEffect(
-    useCallback(() => {
-      load();
-    }, [load])
-  );
-
-  async function onRefresh() {
-    setRefreshing(true);
-    try {
-      await fullSync();
-      load();
-    } catch {
-      // offline or server unreachable; local data still shown
-    } finally {
-      setRefreshing(false);
-    }
-  }
-
+  const { user } = useAuth();
+  const palette = usePalette();
+  const router = useRouter();
+  const { data, loading, error, pulling, pull } = useRemote<SummaryResponse>("/api/mobile/summary");
   const currency = user?.currency ?? "TT$";
-  const netThisMonth = stats.income - stats.expenses;
+  const money = (v: number) => formatCurrency(v, currency);
+
+  const now = new Date();
+  const monthIndex = data?.monthIndex ?? now.getMonth();
+  const year = data?.year ?? now.getFullYear();
+  const nextMonth = new Date(year, monthIndex + 1, 1);
+
+  const net = data?.selected.net ?? 0;
+  const savingsRate = data?.savingsRate ?? user?.savingsRate ?? 0;
+  const savings = net > 0 ? net * savingsRate : 0;
+  const funMoney = net > 0 ? net - savings : 0;
+  const depoTotal = data?.depos.reduce((sum, d) => sum + d.balance, 0) ?? 0;
 
   return (
-    <ScrollView
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-      contentContainerStyle={styles.content}
-    >
-      {offline && (
-        <ThemedView type="backgroundSelected" style={styles.offlineBanner}>
-          <ThemedText type="small">You&apos;re offline. Showing data saved on this device.</ThemedText>
-        </ThemedView>
+    <Screen refreshing={pulling} onRefresh={pull}>
+      <PageHero
+        title={`${MONTH_NAMES[monthIndex]} ${year}`}
+        description="Everything here is calculated from your Transactions, Subscriptions, and Debts logs."
+      />
+
+      {data && (
+        <FocalPanel
+          label="Net this month"
+          footer={
+            <>
+              <FocalRow label="Income">
+                <AppText size={15} weight="semibold" tabular color="good">
+                  {money(data.selected.income)}
+                </AppText>
+              </FocalRow>
+              <FocalRow label="Money out">{money(data.selected.totalOut)}</FocalRow>
+            </>
+          }
+        >
+          <Money amount={net} currency={currency} size={44} color={net >= 0 ? "good" : "critical"} />
+        </FocalPanel>
       )}
 
-      <ThemedView type="backgroundElement" style={styles.card}>
-        <ThemedText type="small" themeColor="textSecondary">
-          Income this month
-        </ThemedText>
-        <ThemedText type="title" style={styles.value}>
-          {currency}
-          {stats.income.toFixed(2)}
-        </ThemedText>
-      </ThemedView>
+      {error && <Notice tone="warning">{error}</Notice>}
 
-      <ThemedView type="backgroundElement" style={styles.card}>
-        <ThemedText type="small" themeColor="textSecondary">
-          Expenses this month
-        </ThemedText>
-        <ThemedText type="title" style={styles.value}>
-          {currency}
-          {stats.expenses.toFixed(2)}
-        </ThemedText>
-      </ThemedView>
+      {!data ? (
+        <View style={{ paddingVertical: Spacing.eight }}>
+          {loading ? <ActivityIndicator color={palette.primary} /> : <EmptyState>Connect to your server to load your summary.</EmptyState>}
+        </View>
+      ) : (
+        <>
+          <Section title="This month" padded={false}>
+            {[
+              { label: `Set aside (${Math.round(savingsRate * 100)}%)`, value: savings },
+              { label: "Fun money", value: funMoney },
+              {
+                label: "Outstanding debt",
+                value: data.outstandingDebt,
+                color: data.outstandingDebt > 0 ? ("critical" as const) : undefined,
+              },
+              { label: "Across depos", value: depoTotal, color: depoTotal < 0 ? ("critical" as const) : undefined },
+            ].map((row, i, rows) => (
+              <View
+                key={row.label}
+                style={[styles.listRow, { borderBottomColor: palette.border, borderBottomWidth: i === rows.length - 1 ? 0 : StyleSheet.hairlineWidth }]}
+              >
+                <AppText size={14} color="muted">
+                  {row.label}
+                </AppText>
+                <AppText size={15} weight="semibold" tabular color={row.color ?? "foreground"}>
+                  {money(row.value)}
+                </AppText>
+              </View>
+            ))}
+          </Section>
 
-      <ThemedView type="backgroundElement" style={styles.card}>
-        <ThemedText type="small" themeColor="textSecondary">
-          Net this month
-        </ThemedText>
-        <ThemedText type="title" style={styles.value}>
-          {currency}
-          {netThisMonth.toFixed(2)}
-        </ThemedText>
-      </ThemedView>
+          <Section title={`Money in vs money out each month, ${year}`} subtitle="Tap a month for details">
+            <MoneyFlowChart data={data.months} currency={currency} />
+          </Section>
 
-      <ThemedView type="backgroundElement" style={styles.card}>
-        <ThemedText type="small" themeColor="textSecondary">
-          Active subscriptions (monthly)
-        </ThemedText>
-        <ThemedText type="title" style={styles.value}>
-          {currency}
-          {stats.subscriptions.toFixed(2)}
-        </ThemedText>
-      </ThemedView>
+          <Section title={`Where ${MONTH_NAMES[monthIndex]}'s spending went`}>
+            {data.categories.length > 0 ? (
+              <CategoryBreakdownChart data={data.categories} currency={currency} />
+            ) : (
+              <AppText size={14} color="muted">
+                No expenses logged this month yet.
+              </AppText>
+            )}
+          </Section>
 
-      <ThemedView type="backgroundElement" style={styles.card}>
-        <ThemedText type="small" themeColor="textSecondary">
-          Outstanding debt
-        </ThemedText>
-        <ThemedText type="title" style={styles.value}>
-          {currency}
-          {stats.debt.toFixed(2)}
-        </ThemedText>
-      </ThemedView>
+          <Section
+            title="Where your money is"
+            subtitle={`${money(depoTotal)} across ${data.depos.length} depo${data.depos.length === 1 ? "" : "s"}`}
+          >
+            {data.depos.length > 0 ? (
+              <View style={styles.depoCards}>
+                {data.depos.map((depo) => (
+                  <Pressable
+                    key={depo.id}
+                    onPress={() => router.navigate({ pathname: "/transactions", params: { depo: depo.id } })}
+                    style={({ pressed }) => [
+                      styles.depoCard,
+                      {
+                        borderColor: pressed ? mix(depo.color, palette.border, 0.45) : palette.border,
+                        backgroundColor: pressed ? palette.surfaceInset : palette.surface,
+                      },
+                    ]}
+                  >
+                    <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+                      <DepoBadge icon={depo.icon} color={depo.color} />
+                      <View style={{ flex: 1, minWidth: 0 }}>
+                        <AppText size={14} weight="semibold" numberOfLines={1}>
+                          {depo.name}
+                        </AppText>
+                        <AppText size={12} color="muted">
+                          {depoKindLabel(depo.kind)}
+                        </AppText>
+                      </View>
+                    </View>
+                    <Money amount={depo.balance} currency={currency} size={24} color={depo.balance < 0 ? "critical" : "foreground"} />
+                    <ProgressBar value={depoTotal > 0 ? depo.balance / depoTotal : 0} color={depo.color} />
+                  </Pressable>
+                ))}
+              </View>
+            ) : (
+              <View style={{ gap: Spacing.three }}>
+                <AppText size={14} color="muted">
+                  Add depos like cash in hand, your bank, or a credit union to see where your money sits.
+                </AppText>
+                <TextLink label="Set up depos" onPress={() => router.navigate("/transactions")} />
+              </View>
+            )}
+          </Section>
 
-      <ThemedText type="small" themeColor="textSecondary" style={styles.hint}>
-        Pull down to sync with the server.
-      </ThemedText>
-    </ScrollView>
+          <Section title="Year to date" subtitle={String(year)} padded={false}>
+            {[
+              { label: "Income", value: data.ytd.income },
+              { label: "Expenses", value: data.ytd.expenses },
+              { label: "Subscriptions", value: data.ytd.subscriptions },
+              { label: "Debt payments", value: data.ytd.debtPayments },
+            ].map((row) => (
+              <View key={row.label} style={[styles.listRow, { borderBottomColor: palette.border }]}>
+                <AppText size={14} color="muted">
+                  {row.label}
+                </AppText>
+                <AppText size={14} weight="medium" tabular>
+                  {money(row.value)}
+                </AppText>
+              </View>
+            ))}
+            <View style={[styles.listRow, { borderBottomWidth: 0, paddingVertical: 14 }]}>
+              <AppText size={14} weight="semibold">
+                Net
+              </AppText>
+              <AppText size={16} weight="bold" tabular color={data.ytd.net >= 0 ? "good" : "critical"}>
+                {money(data.ytd.net)}
+              </AppText>
+            </View>
+            <View style={{ gap: Spacing.three, paddingHorizontal: Spacing.five, paddingBottom: Spacing.five, paddingTop: Spacing.two }}>
+              <TextLink
+                label="Plan next month's budget"
+                onPress={() =>
+                  router.navigate({
+                    pathname: "/budget",
+                    params: { year: String(nextMonth.getFullYear()), month: String(nextMonth.getMonth()) },
+                  })
+                }
+              />
+              <TextLink label="Plan your debt payoff roadmap" onPress={() => router.navigate("/debts")} />
+            </View>
+          </Section>
+        </>
+      )}
+    </Screen>
+  );
+}
+
+function TextLink({ label, onPress }: { label: string; onPress: () => void }) {
+  return (
+    <Pressable onPress={onPress} hitSlop={6} accessibilityRole="link" style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}>
+      <AppText size={14} weight="semibold" color="primaryDeep" style={{ textDecorationLine: "underline" }}>
+        {label}
+      </AppText>
+    </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
-  content: { padding: Spacing.three, gap: Spacing.three },
-  offlineBanner: { borderRadius: Spacing.two, padding: Spacing.two },
-  card: { borderRadius: Spacing.two, padding: Spacing.three, gap: Spacing.one },
-  value: { fontSize: 28, lineHeight: 32 },
-  hint: { textAlign: "center", marginTop: Spacing.two },
+  depoCards: { gap: Spacing.three },
+  depoCard: { borderWidth: 1, borderRadius: 14, padding: Spacing.four, gap: Spacing.three },
+  listRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: Spacing.three,
+    paddingHorizontal: Spacing.five,
+    paddingVertical: 11,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
 });

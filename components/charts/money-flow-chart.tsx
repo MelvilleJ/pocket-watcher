@@ -26,12 +26,21 @@ function formatCurrency(value: number, currency: string) {
 export function MoneyFlowChart({
   data,
   currency,
+  year,
 }: {
   data: MoneyFlowPoint[];
   currency: string;
+  year: number;
 }) {
+  const totalIn = data.reduce((sum, d) => sum + d.income, 0);
+  const totalOut = data.reduce((sum, d) => sum + d.expenses + d.subscriptions + d.debtPayments, 0);
+
   return (
-    <div className="h-80 w-full">
+    <div
+      role="img"
+      aria-label={`Money in vs money out by month for ${year}: ${formatCurrency(totalIn, currency)} in and ${formatCurrency(totalOut, currency)} out across ${data.length} months.`}
+      className="h-80 w-full"
+    >
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={data} margin={{ top: 8, right: 8, left: 8, bottom: 8 }}>
           <CartesianGrid
@@ -62,7 +71,7 @@ export function MoneyFlowChart({
             }}
           />
           <Legend wrapperStyle={{ color: "var(--chart-text-secondary)", fontSize: 12 }} />
-          <Bar dataKey="income" name="Income" fill="var(--series-1)" radius={[4, 4, 0, 0]} />
+          <Bar dataKey="income" name="Income" fill="var(--status-good)" radius={[4, 4, 0, 0]} />
           <Bar
             dataKey="expenses"
             name="Expenses"

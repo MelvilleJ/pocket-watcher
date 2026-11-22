@@ -1,13 +1,15 @@
 import { Link, Redirect } from "expo-router";
 import { useState } from "react";
-import { ActivityIndicator, Pressable, StyleSheet, TextInput } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { View } from "react-native";
 
-import { ThemedText } from "@/components/themed-text";
-import { ThemedView } from "@/components/themed-view";
+import { AuthShell } from "@/components/auth-shell";
+import { ServerUrlField } from "@/components/server-url-field";
+import { Button, Field, TextField } from "@/components/ui/controls";
+import { Notice } from "@/components/ui/layout";
+import { AppText } from "@/components/ui/text";
 import { Spacing } from "@/constants/theme";
-import { useAuth } from "@/lib/auth-context";
 import { ApiError } from "@/lib/api";
+import { useAuth } from "@/lib/auth-context";
 
 export default function LoginScreen() {
   const { user, loading, login } = useAuth();
@@ -24,69 +26,51 @@ export default function LoginScreen() {
     try {
       await login(email, password);
     } catch (e) {
-      setError(e instanceof ApiError ? e.message : "Something went wrong.");
+      setError(e instanceof ApiError ? e.message : "Couldn't reach the server. Check the server address below.");
     } finally {
       setSubmitting(false);
     }
   }
 
   return (
-    <ThemedView style={styles.container}>
-      <SafeAreaView style={styles.safeArea}>
-        <ThemedText type="title" style={styles.title}>
-          Pocket Watcher
-        </ThemedText>
-        <ThemedText type="subtitle">Log in</ThemedText>
-
-        <TextInput
-          placeholder="Email"
-          autoCapitalize="none"
-          keyboardType="email-address"
-          value={email}
-          onChangeText={setEmail}
-          style={styles.input}
-        />
-        <TextInput
-          placeholder="Password"
-          secureTextEntry
-          value={password}
-          onChangeText={setPassword}
-          style={styles.input}
-        />
-
-        {error && <ThemedText style={styles.error}>{error}</ThemedText>}
-
-        <Pressable style={styles.button} onPress={onSubmit} disabled={submitting}>
-          {submitting ? <ActivityIndicator color="#fff" /> : <ThemedText style={styles.buttonText}>Log in</ThemedText>}
-        </Pressable>
-
-        <Link href="/signup" style={styles.link}>
-          <ThemedText type="link">No account yet? Sign up</ThemedText>
+    <AuthShell title="Log in to Pocket Watcher" description="Your depos, budgets and payoff plans, on your phone and the web.">
+      <View style={{ gap: Spacing.five, marginTop: Spacing.eight }}>
+        <Field label="Email address">
+          <TextField
+            value={email}
+            onChangeText={setEmail}
+            placeholder="you@example.com"
+            autoCapitalize="none"
+            autoComplete="email"
+            keyboardType="email-address"
+          />
+        </Field>
+        <Field label="Password">
+          <TextField
+            value={password}
+            onChangeText={setPassword}
+            placeholder="Enter your password"
+            secureTextEntry
+            autoComplete="current-password"
+            onSubmitEditing={onSubmit}
+          />
+        </Field>
+        {error && <Notice tone="critical">{error}</Notice>}
+        <Button label="Log in" size="lg" loading={submitting} onPress={onSubmit} />
+      </View>
+      <View style={{ flexDirection: "row", justifyContent: "center", gap: 6, marginTop: Spacing.six }}>
+        <AppText size={14} color="muted">
+          New to Pocket Watcher?
+        </AppText>
+        <Link href="/signup">
+          <AppText size={14} weight="bold" color="primaryDeep">
+            Create an account
+          </AppText>
         </Link>
-      </SafeAreaView>
-    </ThemedView>
+      </View>
+      <View style={{ marginTop: Spacing.six }}>
+        <ServerUrlField />
+      </View>
+    </AuthShell>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1 },
-  safeArea: { flex: 1, padding: Spacing.four, gap: Spacing.two, justifyContent: "center" },
-  title: { marginBottom: Spacing.one },
-  input: {
-    borderWidth: 1,
-    borderColor: "#c3c2b7",
-    borderRadius: 8,
-    padding: Spacing.two,
-    fontSize: 16,
-  },
-  button: {
-    backgroundColor: "#2a78d6",
-    borderRadius: 8,
-    padding: Spacing.three,
-    alignItems: "center",
-    marginTop: Spacing.two,
-  },
-  buttonText: { color: "#fff", fontWeight: "600" },
-  error: { color: "#d03b3b" },
-  link: { marginTop: Spacing.three, alignSelf: "center" },
-});

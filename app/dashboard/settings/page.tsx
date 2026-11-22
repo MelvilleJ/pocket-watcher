@@ -10,11 +10,10 @@ export default async function SettingsPage() {
   const sessions = await listSessions(user.id);
 
   return (
-    <div className="page-accent-settings flex flex-col gap-6">
+    <div className="flex flex-col gap-6">
       <PageHero
         title="Settings"
         description="Profile, currency, savings rate, and device sessions."
-        iconPath="M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6ZM19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.8 2.8-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6v.2h-4V21a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1L4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9A1.7 1.7 0 0 0 3 14H2.8v-4H3a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9L4.2 7 7 4.2l.1.1A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-1.6v-.2h4V3a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1L19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.6 1h.2v4H21a1.7 1.7 0 0 0-1.6 1Z"
         stats={[
           { label: "Currency", value: user.currency },
           { label: "Savings rate", value: `${(Number(user.savingsRate) * 100).toFixed(0)}%` },
@@ -40,13 +39,13 @@ export default async function SettingsPage() {
           <h2 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">
             Active sessions
           </h2>
-          <p className="text-xs text-zinc-500">
+          <p className="text-xs text-[color:var(--muted)]">
             Web and mobile devices signed in to your account.
           </p>
         </div>
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-black/10 dark:border-white/10 text-left text-zinc-500">
+            <tr className="border-b border-black/10 dark:border-white/10 text-left text-[color:var(--muted)]">
               <th className="px-4 py-3 font-medium">Device</th>
               <th className="px-4 py-3 font-medium">Platform</th>
               <th className="px-4 py-3 font-medium">Last used</th>
@@ -60,11 +59,11 @@ export default async function SettingsPage() {
               return (
                 <tr key={s.id} className="border-b border-black/5 dark:border-white/5">
                   <td className="px-4 py-2">{s.deviceName}</td>
-                  <td className="px-4 py-2 capitalize text-zinc-500">{s.platform}</td>
-                  <td className="px-4 py-2 text-zinc-500">{s.lastUsedAt.toLocaleString()}</td>
+                  <td className="px-4 py-2 capitalize text-[color:var(--muted)]">{s.platform}</td>
+                  <td className="px-4 py-2 text-[color:var(--muted)]">{s.lastUsedAt.toLocaleString()}</td>
                   <td className="px-4 py-2">
                     {isRevoked ? (
-                      <span className="text-zinc-400">Signed out</span>
+                      <span className="text-[color:var(--muted)]">Signed out</span>
                     ) : (
                       <span className="text-[color:var(--status-good)]">Active</span>
                     )}

@@ -4,7 +4,9 @@ import { deleteDebt, deleteDebtPayment } from "@/lib/actions/debts";
 import { DebtForm } from "@/components/forms/debt-form";
 import { DebtPaymentForm } from "@/components/forms/debt-payment-form";
 import { DebtRoadmapPlanner } from "@/components/debt-roadmap-planner";
+import { FocalPanel } from "@/components/focal-panel";
 import { PageHero } from "@/components/page-hero";
+import { Money } from "@/components/money";
 import { DeleteButton } from "@/components/delete-button";
 import { db } from "@/lib/db";
 import { debtPayments } from "@/lib/db/schema";
@@ -40,14 +42,24 @@ export default async function DebtsPage() {
   }));
 
   return (
-    <div className="page-accent-debt flex flex-col gap-6">
+    <div className="flex flex-col gap-6">
       <PageHero
         title="Debts Roadmap"
         description="Track what you owe and compare strategies for paying it off."
-        iconPath="M3 7h18v10H3zM3 11h18M7 15h3"
-        stats={[
-          { label: "Outstanding", value: formatCurrency(totalBalance, user.currency) },
-          { label: "Min. monthly", value: formatCurrency(minTotalPayment, user.currency) },
+      />
+
+      <FocalPanel
+        label="Still to pay off"
+        value={
+          <Money
+            currency={user.currency}
+            amount={totalBalance}
+            className={`money-display ${totalBalance > 0 ? "text-[color:var(--status-critical)]" : "text-[color:var(--status-good)]"}`}
+          />
+        }
+        rows={[
+          { label: "Minimum each month", value: <Money currency={user.currency} amount={minTotalPayment} /> },
+          { label: "Debts", value: String(debts.length) },
         ]}
       />
 
@@ -61,7 +73,7 @@ export default async function DebtsPage() {
       <section className="overflow-x-auto rounded-xl border border-black/10 dark:border-white/10 bg-white dark:bg-zinc-950">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-black/10 dark:border-white/10 text-left text-zinc-500">
+            <tr className="border-b border-black/10 dark:border-white/10 text-left text-[color:var(--muted)]">
               <th className="px-4 py-3 font-medium">Name</th>
               <th className="px-4 py-3 font-medium">Type</th>
               <th className="px-4 py-3 font-medium text-right">Original</th>
@@ -76,7 +88,7 @@ export default async function DebtsPage() {
             {debts.map((d) => (
               <tr key={d.id} className="border-b border-black/5 dark:border-white/5">
                 <td className="px-4 py-2">{d.name}</td>
-                <td className="px-4 py-2 text-zinc-500">{d.lenderType}</td>
+                <td className="px-4 py-2 text-[color:var(--muted)]">{d.lenderType}</td>
                 <td className="px-4 py-2 text-right tabular-nums">
                   {formatCurrency(d.originalAmount, user.currency)}
                 </td>
@@ -99,7 +111,7 @@ export default async function DebtsPage() {
             ))}
             {debts.length === 0 && (
               <tr>
-                <td colSpan={8} className="px-4 py-6 text-center text-zinc-500">
+                <td colSpan={8} className="px-4 py-6 text-center text-[color:var(--muted)]">
                   No debts logged yet.
                 </td>
               </tr>
@@ -116,7 +128,7 @@ export default async function DebtsPage() {
       <section className="overflow-x-auto rounded-xl border border-black/10 dark:border-white/10 bg-white dark:bg-zinc-950">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-black/10 dark:border-white/10 text-left text-zinc-500">
+            <tr className="border-b border-black/10 dark:border-white/10 text-left text-[color:var(--muted)]">
               <th className="px-4 py-3 font-medium">Date</th>
               <th className="px-4 py-3 font-medium">Debt</th>
               <th className="px-4 py-3 font-medium">Description</th>
@@ -129,7 +141,7 @@ export default async function DebtsPage() {
               <tr key={p.id} className="border-b border-black/5 dark:border-white/5">
                 <td className="px-4 py-2">{p.date.toISOString().slice(0, 10)}</td>
                 <td className="px-4 py-2">{debtNameById.get(p.debtId) ?? "-"}</td>
-                <td className="px-4 py-2 text-zinc-500">{p.description}</td>
+                <td className="px-4 py-2 text-[color:var(--muted)]">{p.description}</td>
                 <td className="px-4 py-2 text-right tabular-nums">
                   {formatCurrency(Number(p.amount), user.currency)}
                 </td>
@@ -140,7 +152,7 @@ export default async function DebtsPage() {
             ))}
             {payments.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-4 py-6 text-center text-zinc-500">
+                <td colSpan={5} className="px-4 py-6 text-center text-[color:var(--muted)]">
                   No payments recorded yet.
                 </td>
               </tr>

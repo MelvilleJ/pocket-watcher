@@ -12,7 +12,7 @@ import { ExpenseSchema, IncomeSchema, TransferSchema, type FormState } from "@/l
 import { parseLocalDate } from "@/lib/utils/date";
 import type { TransactionType } from "@/lib/queries/depos";
 import { resolveExpenseCategory, resolveIncomeSource } from "@/lib/categories";
-import { syncBudgetLinesForUser } from "@/lib/actions/budgets";
+import { syncBudgetLinesForUser } from "@/lib/budgets";
 
 function revalidateMoneyPages() {
   revalidatePath("/dashboard/transactions");

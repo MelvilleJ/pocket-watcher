@@ -105,3 +105,14 @@ export const TransferSchema = z
     error: "Pick two different depos.",
     path: ["toDepoId"],
   });
+
+export const BudgetLineSchema = z.object({
+  lineId: z.uuid(),
+  plannedAmount: z.coerce.number().min(0).max(100_000_000),
+});
+
+export const SettingsSchema = z.object({
+  name: z.string().trim().min(2).max(80),
+  currency: z.string().trim().min(1).max(8),
+  savingsRatePercent: z.coerce.number().min(0).max(100),
+});

@@ -1,6 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  allowedDevOrigins: ["192.168.100.226", "192.168.100.234", "*.ngrok-free.dev", "*.ngrok-free.app"],
   async redirects() {
     return [
       { source: "/dashboard/income", destination: "/dashboard/transactions?type=income", permanent: false },

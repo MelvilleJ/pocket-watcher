@@ -1,11 +1,6 @@
 import { requireUser } from "@/lib/auth/dal";
-import { ensureDraftBudget, lockBudget, unlockBudget } from "@/lib/actions/budgets";
-import { getBudgetForPeriod } from "@/lib/queries/budgets";
-import { getBudgetActuals } from "@/lib/queries/summary";
-import { listSubscriptions } from "@/lib/queries/entries";
-import { getDebtsWithBalances } from "@/lib/queries/debts";
-import { listGoalsForUser } from "@/lib/queries/goals";
-import { calcMonthlyCost } from "@/lib/finance/subscriptions";
+import { lockBudget, unlockBudget } from "@/lib/actions/budgets";
+import { getBudgetView } from "@/lib/budgets";
 import { BudgetLineRow } from "@/components/forms/budget-line-row";
 import { SubscriptionBudgetLineRow } from "@/components/forms/subscription-budget-line-row";
 import SaveAllButton from "@/components/save-all-button";
@@ -38,58 +33,22 @@ export default async function BudgetPage({
     params.month && Number.isInteger(requestedMonth) && requestedMonth >= 0 && requestedMonth <= 11
       ? requestedMonth
       : now.getMonth();
-  const month = monthIndex + 1;
   const previousPeriod = new Date(year, monthIndex - 1, 1);
   const nextPeriod = new Date(year, monthIndex + 1, 1);
   const periodHref = (date: Date) => `/dashboard/budget?year=${date.getFullYear()}&month=${date.getMonth()}`;
 
-  await ensureDraftBudget(year, month);
-  const data = await getBudgetForPeriod(user.id, year, month);
-  const { incomeBySource, expenseByCategory, subscriptionByName, debtPaymentsByName, goalPaymentsByName } =
-    await getBudgetActuals(user.id, year, monthIndex);
+  const view = await getBudgetView(user.id, year, monthIndex);
+  if (!view) return null;
 
-  if (!data) return null;
-  const { budget, lines } = data;
-  const isLocked = budget.status === "locked";
-
-  const incomeLines = lines.filter((l) => l.kind === "income");
-  const expenseLines = lines.filter((l) => l.kind === "expense");
-  const [subscriptions, debts, goals] = await Promise.all([
-    listSubscriptions(user.id),
-    getDebtsWithBalances(user.id),
-    listGoalsForUser(user.id),
-  ]);
-  const activeDebtNames = new Set(debts.map((debt) => debt.name));
-  const activeGoalNames = new Set(goals.map((goal) => goal.name));
-  const debtLines = lines.filter((line) => line.kind === "debt" && activeDebtNames.has(line.label));
-  const goalLines = lines.filter((line) => line.kind === "goal" && activeGoalNames.has(line.label));
-  const subscriptionMonthlyCostByName = new Map(
-    subscriptions.map((s) => [s.name, calcMonthlyCost(s.billingCycle, Number(s.billedAmount))])
-  );
-
-  let subscriptionLines = lines.filter((l) => l.kind === "subscription");
-  if (!isLocked) {
-    const activeSubscriptionNames = new Set(
-      subscriptions.filter((s) => s.status === "active").map((s) => s.name)
-    );
-    subscriptionLines = subscriptionLines.filter((l) => activeSubscriptionNames.has(l.label));
-  }
-
-  const plannedIncome = incomeLines.reduce((s, l) => s + Number(l.plannedAmount), 0);
-  const plannedExpense = expenseLines.reduce((s, l) => s + Number(l.plannedAmount), 0);
-  const plannedSubscriptions = subscriptionLines.reduce((s, l) => s + Number(l.plannedAmount), 0);
-  const plannedDebt = debtLines.reduce((s, l) => s + Number(l.plannedAmount), 0);
-  const plannedGoals = goalLines.reduce((s, l) => s + Number(l.plannedAmount), 0);
-  const actualIncome = Array.from(incomeBySource.values()).reduce((s, v) => s + v, 0);
-  const actualExpense = Array.from(expenseByCategory.values()).reduce((s, v) => s + v, 0);
-  const actualSubscriptions = Array.from(subscriptionByName.values()).reduce((s, v) => s + v, 0);
-  const actualDebt = Array.from(debtPaymentsByName.values()).reduce((s, v) => s + v, 0);
-  const actualGoals = Array.from(goalPaymentsByName.values()).reduce((s, v) => s + v, 0);
-  const totalPlannedExpenses = plannedExpense + plannedSubscriptions;
-  const totalActualExpenses = actualExpense + actualSubscriptions;
+  const { budget, totals } = view;
+  const { isLocked } = budget;
+  const { income: incomeLines, expenses: expenseLines, subscriptions: subscriptionLines, debts: debtLines, goals: goalLines } =
+    view.lines;
+  const totalPlannedExpenses = totals.plannedExpense + totals.plannedSubscriptions;
+  const totalActualExpenses = totals.actualExpense + totals.actualSubscriptions;
 
   return (
-    <div className="page-accent-budget flex flex-col gap-6">
+    <div className="flex flex-col gap-6">
       <PageHero
         title={`Budget: ${MONTH_NAMES[monthIndex]} ${year}`}
         description={
@@ -97,7 +56,6 @@ export default async function BudgetPage({
             ? "This budget is locked. Actuals are tracked against the amounts you committed to."
             : "Plan your budget before the month starts, then lock it in."
         }
-        iconPath="M6 4h12a3 3 0 0 1 3 3v10a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3V7a3 3 0 0 1 3-3ZM7 9h10M7 14h4M15 14h2"
         actions={
           <>
             <div className="year-picker" role="group" aria-label="Choose month">
@@ -121,7 +79,7 @@ export default async function BudgetPage({
               <form action={lockBudget.bind(null, budget.id)}>
                 <button
                   type="submit"
-                  className="rounded-md bg-[color:var(--status-good)] px-3 py-1.5 text-sm font-medium text-white"
+                  className="rounded-md bg-[color:var(--fill-good)] px-3 py-1.5 text-sm font-medium text-white"
                 >
                   Lock budget
                 </button>
@@ -134,8 +92,8 @@ export default async function BudgetPage({
       <section className="stat-grid grid">
         <StatTile
           label="Planned income"
-          value={formatCurrency(plannedIncome, user.currency)}
-          detail={`Actual: ${formatCurrency(actualIncome, user.currency)}`}
+          value={formatCurrency(totals.plannedIncome, user.currency)}
+          detail={`Actual: ${formatCurrency(totals.actualIncome, user.currency)}`}
         />
         <StatTile
           label="Total planned expenses"
@@ -144,18 +102,18 @@ export default async function BudgetPage({
         />
         <StatTile
           label="Planned subscriptions"
-          value={formatCurrency(plannedSubscriptions, user.currency)}
-          detail={`Actual: ${formatCurrency(actualSubscriptions, user.currency)}`}
+          value={formatCurrency(totals.plannedSubscriptions, user.currency)}
+          detail={`Actual: ${formatCurrency(totals.actualSubscriptions, user.currency)}`}
         />
         <StatTile
           label="Planned debt payments"
-          value={formatCurrency(plannedDebt, user.currency)}
-          detail={`Actual: ${formatCurrency(actualDebt, user.currency)}`}
+          value={formatCurrency(totals.plannedDebt, user.currency)}
+          detail={`Actual: ${formatCurrency(totals.actualDebt, user.currency)}`}
         />
         <StatTile
           label="Planned goal payments"
-          value={formatCurrency(plannedGoals, user.currency)}
-          detail={`Actual: ${formatCurrency(actualGoals, user.currency)}`}
+          value={formatCurrency(totals.plannedGoals, user.currency)}
+          detail={`Actual: ${formatCurrency(totals.actualGoals, user.currency)}`}
         />
       </section>
 
@@ -165,7 +123,7 @@ export default async function BudgetPage({
         </div>
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-black/10 dark:border-white/10 text-left text-zinc-500">
+            <tr className="border-b border-black/10 dark:border-white/10 text-left text-[color:var(--muted)]">
               <th className="px-4 py-3 font-medium">Source</th>
               <th className="px-4 py-3 font-medium text-right">Budgeted</th>
               <th className="px-4 py-3 font-medium text-right">Actual</th>
@@ -178,8 +136,8 @@ export default async function BudgetPage({
                 key={l.id}
                 lineId={l.id}
                 label={l.label}
-                plannedAmount={Number(l.plannedAmount)}
-                actual={incomeBySource.get(l.label) ?? 0}
+                plannedAmount={l.plannedAmount}
+                actual={l.actual}
                 currency={user.currency}
                 disabled={isLocked}
                 kind="income"
@@ -194,11 +152,11 @@ export default async function BudgetPage({
           <h2 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">
             Expenses by category
           </h2>
-          <p className="text-xs text-zinc-500">Day-to-day spending only. Subscriptions, debt payments, and goal payments are tracked separately below.</p>
+          <p className="text-xs text-[color:var(--muted)]">Day-to-day spending only. Subscriptions, debt payments, and goal payments are tracked separately below.</p>
         </div>
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-black/10 dark:border-white/10 text-left text-zinc-500">
+            <tr className="border-b border-black/10 dark:border-white/10 text-left text-[color:var(--muted)]">
               <th className="px-4 py-3 font-medium">Category</th>
               <th className="px-4 py-3 font-medium text-right">Budgeted</th>
               <th className="px-4 py-3 font-medium text-right">Actual</th>
@@ -211,8 +169,8 @@ export default async function BudgetPage({
                 key={l.id}
                 lineId={l.id}
                 label={l.label}
-                plannedAmount={Number(l.plannedAmount)}
-                actual={expenseByCategory.get(l.label) ?? 0}
+                plannedAmount={l.plannedAmount}
+                actual={l.actual}
                 currency={user.currency}
                 disabled={isLocked}
                 kind="expense"
@@ -225,7 +183,7 @@ export default async function BudgetPage({
       <section className="overflow-x-auto rounded-xl border border-black/10 dark:border-white/10 bg-white dark:bg-zinc-950">
         <div className="border-b border-black/10 dark:border-white/10 px-4 py-3">
           <h2 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">Subscriptions</h2>
-          <p className="text-xs text-zinc-500">
+          <p className="text-xs text-[color:var(--muted)]">
             Every active subscription is added here automatically at its known cost. Just say
             whether you&apos;re paying it this month. Cancelled ones drop off once you unlock or
             re-plan a budget.
@@ -233,7 +191,7 @@ export default async function BudgetPage({
         </div>
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-black/10 dark:border-white/10 text-left text-zinc-500">
+            <tr className="border-b border-black/10 dark:border-white/10 text-left text-[color:var(--muted)]">
               <th className="px-4 py-3 font-medium">Subscription</th>
               <th className="px-4 py-3 font-medium text-right">Paying?</th>
               <th className="px-4 py-3 font-medium text-right">Actual</th>
@@ -241,24 +199,21 @@ export default async function BudgetPage({
             </tr>
           </thead>
           <tbody>
-            {subscriptionLines.map((l) => {
-              const monthlyCost = subscriptionMonthlyCostByName.get(l.label) ?? Number(l.plannedAmount);
-              return (
-                <SubscriptionBudgetLineRow
-                  key={l.id}
-                  lineId={l.id}
-                  label={l.label}
-                  monthlyCost={monthlyCost}
-                  included={Number(l.plannedAmount) > 0}
-                  actual={subscriptionByName.get(l.label) ?? 0}
-                  currency={user.currency}
-                  disabled={isLocked}
-                />
-              );
-            })}
+            {subscriptionLines.map((l) => (
+              <SubscriptionBudgetLineRow
+                key={l.id}
+                lineId={l.id}
+                label={l.label}
+                monthlyCost={l.monthlyCost ?? l.plannedAmount}
+                included={l.plannedAmount > 0}
+                actual={l.actual}
+                currency={user.currency}
+                disabled={isLocked}
+              />
+            ))}
             {subscriptionLines.length === 0 && (
               <tr>
-                <td colSpan={4} className="px-4 py-6 text-center text-zinc-500">
+                <td colSpan={4} className="px-4 py-6 text-center text-[color:var(--muted)]">
                   No active subscriptions to budget for.
                 </td>
               </tr>
@@ -270,11 +225,11 @@ export default async function BudgetPage({
       <section className="overflow-x-auto rounded-xl border border-black/10 dark:border-white/10 bg-white dark:bg-zinc-950">
         <div className="border-b border-black/10 dark:border-white/10 px-4 py-3">
           <h2 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">Debt payments</h2>
-          <p className="text-xs text-zinc-500">Every debt with an outstanding balance is added here automatically.</p>
+          <p className="text-xs text-[color:var(--muted)]">Every debt with an outstanding balance is added here automatically.</p>
         </div>
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-black/10 dark:border-white/10 text-left text-zinc-500">
+            <tr className="border-b border-black/10 dark:border-white/10 text-left text-[color:var(--muted)]">
               <th className="px-4 py-3 font-medium">Debt</th>
               <th className="px-4 py-3 font-medium text-right">Budgeted</th>
               <th className="px-4 py-3 font-medium text-right">Actual</th>
@@ -287,8 +242,8 @@ export default async function BudgetPage({
                 key={l.id}
                 lineId={l.id}
                 label={l.label}
-                plannedAmount={Number(l.plannedAmount)}
-                actual={debtPaymentsByName.get(l.label) ?? 0}
+                plannedAmount={l.plannedAmount}
+                actual={l.actual}
                 currency={user.currency}
                 disabled={isLocked}
                 kind="debt"
@@ -296,7 +251,7 @@ export default async function BudgetPage({
             ))}
             {debtLines.length === 0 && (
               <tr>
-                <td colSpan={4} className="px-4 py-6 text-center text-zinc-500">
+                <td colSpan={4} className="px-4 py-6 text-center text-[color:var(--muted)]">
                   No outstanding debts to budget for.
                 </td>
               </tr>
@@ -308,11 +263,11 @@ export default async function BudgetPage({
       <section className="overflow-x-auto rounded-xl border border-black/10 dark:border-white/10 bg-white dark:bg-zinc-950">
         <div className="border-b border-black/10 dark:border-white/10 px-4 py-3">
           <h2 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">Goal payments</h2>
-          <p className="text-xs text-zinc-500">Every unfinished goal is added here automatically at its minimum monthly contribution.</p>
+          <p className="text-xs text-[color:var(--muted)]">Every unfinished goal is added here automatically at its minimum monthly contribution.</p>
         </div>
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-black/10 dark:border-white/10 text-left text-zinc-500">
+            <tr className="border-b border-black/10 dark:border-white/10 text-left text-[color:var(--muted)]">
               <th className="px-4 py-3 font-medium">Goal</th>
               <th className="px-4 py-3 font-medium text-right">Budgeted</th>
               <th className="px-4 py-3 font-medium text-right">Actual</th>
@@ -325,8 +280,8 @@ export default async function BudgetPage({
                 key={line.id}
                 lineId={line.id}
                 label={line.label}
-                plannedAmount={Number(line.plannedAmount)}
-                actual={goalPaymentsByName.get(line.label) ?? 0}
+                plannedAmount={line.plannedAmount}
+                actual={line.actual}
                 currency={user.currency}
                 disabled={isLocked}
                 kind="goal"
@@ -334,7 +289,7 @@ export default async function BudgetPage({
             ))}
             {goalLines.length === 0 && (
               <tr>
-                <td colSpan={4} className="px-4 py-6 text-center text-zinc-500">
+                <td colSpan={4} className="px-4 py-6 text-center text-[color:var(--muted)]">
                   No unfinished goals to budget for.
                 </td>
               </tr>

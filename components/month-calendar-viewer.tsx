@@ -52,7 +52,7 @@ export function MonthCalendarViewer({
 
   return (
     <div className="flex flex-col gap-6">
-      <p className="text-sm text-zinc-500 dark:text-zinc-400">
+      <p className="text-sm text-[color:var(--muted)] dark:text-zinc-400">
         Hover or focus a month to expand it. Select up to two months to compare their cash activity.
       </p>
 
@@ -63,14 +63,14 @@ export function MonthCalendarViewer({
             <MotionButton
               type="button"
               onClick={() => setComparison([])}
-              className="text-xs font-medium text-zinc-500 hover:underline"
+              className="text-xs font-medium text-[color:var(--muted)] hover:underline"
             >
               Clear
             </MotionButton>
           </div>
           <table className="w-full text-sm">
             <thead>
-              <tr className="text-left text-zinc-500">
+              <tr className="text-left text-[color:var(--muted)]">
                 <th className="px-4 py-3 font-medium">Measure</th>
                 {comparedMonths.map((month) => (
                   <th key={month.monthIndex} className="px-4 py-3 text-right font-medium">
@@ -90,7 +90,7 @@ export function MonthCalendarViewer({
                 ["Net cash", "net"],
               ].map(([label, key]) => (
                 <tr key={key} className="border-t border-black/5 dark:border-white/5">
-                  <td className="px-4 py-2 text-zinc-500">{label}</td>
+                  <td className="px-4 py-2 text-[color:var(--muted)]">{label}</td>
                   {comparedMonths.map((month) => (
                     <td key={month.monthIndex} className="px-4 py-2 text-right tabular-nums">
                       {formatCurrency(month[key as keyof CalendarMonth] as number, currency)}
@@ -143,7 +143,7 @@ export function MonthCalendarViewer({
                 </span>
               </div>
 
-              <div className="mt-3 grid grid-cols-7 gap-1 text-center text-[10px] text-zinc-500">
+              <div className="mt-3 grid grid-cols-7 gap-1 text-center text-[10px] text-[color:var(--muted)]">
                 {WEEKDAYS.map((day) => <span key={day}>{day.slice(0, 1)}</span>)}
                 {blanks.map((_, index) => <span key={`blank-${index}`} />)}
                 {dayNumbers.map((day) => {
@@ -179,11 +179,11 @@ export function MonthCalendarViewer({
                     transition={{ duration: 0.18 }}
                     className="mt-3 grid grid-cols-2 gap-x-3 gap-y-1 text-xs"
                   >
-                    <div className="flex justify-between gap-2"><dt className="text-zinc-500">Income</dt><dd className="tabular-nums">{formatCurrency(month.income, currency)}</dd></div>
-                    <div className="flex justify-between gap-2"><dt className="text-zinc-500">Expenses</dt><dd className="tabular-nums">{formatCurrency(month.expenses, currency)}</dd></div>
-                    <div className="flex justify-between gap-2"><dt className="text-zinc-500">Subscriptions</dt><dd className="tabular-nums">{formatCurrency(month.subscriptions, currency)}</dd></div>
-                    <div className="flex justify-between gap-2"><dt className="text-zinc-500">Debt</dt><dd className="tabular-nums">{formatCurrency(month.debtPayments, currency)}</dd></div>
-                    <div className="flex justify-between gap-2"><dt className="text-zinc-500">Goals</dt><dd className="tabular-nums">{formatCurrency(month.goalPayments, currency)}</dd></div>
+                    <div className="flex justify-between gap-2"><dt className="text-[color:var(--muted)]">Income</dt><dd className="tabular-nums">{formatCurrency(month.income, currency)}</dd></div>
+                    <div className="flex justify-between gap-2"><dt className="text-[color:var(--muted)]">Expenses</dt><dd className="tabular-nums">{formatCurrency(month.expenses, currency)}</dd></div>
+                    <div className="flex justify-between gap-2"><dt className="text-[color:var(--muted)]">Subscriptions</dt><dd className="tabular-nums">{formatCurrency(month.subscriptions, currency)}</dd></div>
+                    <div className="flex justify-between gap-2"><dt className="text-[color:var(--muted)]">Debt</dt><dd className="tabular-nums">{formatCurrency(month.debtPayments, currency)}</dd></div>
+                    <div className="flex justify-between gap-2"><dt className="text-[color:var(--muted)]">Goals</dt><dd className="tabular-nums">{formatCurrency(month.goalPayments, currency)}</dd></div>
                     <div className="flex justify-between gap-2 font-medium"><dt>Committed</dt><dd className="tabular-nums">{formatCurrency(month.totalOut, currency)}</dd></div>
                   </motion.dl>
                 )}
@@ -193,7 +193,7 @@ export function MonthCalendarViewer({
         })}
       </div>
 
-      <p className="text-xs text-zinc-500">Green days include income, red days include cash outflows, and amber days include both.</p>
+      <p className="text-xs text-[color:var(--muted)]">Green days include income, red days include cash outflows, and amber days include both.</p>
     </div>
   );
 }

@@ -20,15 +20,7 @@ function formatCurrency(value: number, currency: string) {
   return `${currency}${value.toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
 }
 
-const SEQUENTIAL_STEPS = [
-  "#cde2fb",
-  "#9ec5f4",
-  "#6da7ec",
-  "#3987e5",
-  "#256abf",
-  "#184f95",
-  "#0d366b",
-];
+const SEQUENTIAL_STEPS = ["var(--ramp-1)", "var(--ramp-2)", "var(--ramp-3)", "var(--ramp-4)", "var(--ramp-5)"];
 
 export function CategoryBreakdownChart({
   data,
@@ -38,9 +30,18 @@ export function CategoryBreakdownChart({
   currency: string;
 }) {
   const max = Math.max(...data.map((d) => d.value), 1);
+  const summary = [...data]
+    .sort((a, b) => b.value - a.value)
+    .map((d) => `${d.category} ${formatCurrency(d.value, currency)}`)
+    .join(", ");
 
   return (
-    <div style={{ height: Math.max(data.length * 34, 120) }} className="w-full">
+    <div
+      role="img"
+      aria-label={`Spending by category, largest first: ${summary}.`}
+      style={{ height: Math.max(data.length * 34, 120) }}
+      className="w-full"
+    >
       <ResponsiveContainer width="100%" height="100%">
         <BarChart
           data={data}

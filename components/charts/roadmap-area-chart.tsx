@@ -1,6 +1,5 @@
 "use client";
 
-import { useId } from "react";
 import {
   Area,
   AreaChart,
@@ -15,11 +14,13 @@ export type RoadmapSeries = {
   key: string;
   name: string;
   color: string;
+  dashed?: boolean;
 };
 
 type RoadmapPoint = { month: number } & Record<string, number>;
 
 const DONE_COLOR = "var(--status-good)";
+const DASH = "6 4";
 
 function formatCurrency(value: number, currency: string) {
   return `${currency}${value.toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
@@ -29,60 +30,21 @@ export function RoadmapAreaChart({
   data,
   series,
   currency,
+  summary,
 }: {
   data: RoadmapPoint[];
   series: RoadmapSeries[];
   currency: string;
+  summary: string;
 }) {
-  // useId output contains characters that break url(#...) references.
-  const idPrefix = `roadmap-${useId().replace(/[^a-zA-Z0-9-]/g, "")}`;
-
   return (
     <div className="w-full">
-      <div className="h-80 w-full">
+      <div role="img" aria-label={summary} className="h-80 w-full">
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart
             data={data}
             margin={{ top: 12, right: 16, left: 8, bottom: 8 }}
           >
-            <defs>
-              {series.map((s) => (
-                // Vertical gradients map high balances to the series colour and
-                // the zero line to green, so each line turns green as it finishes.
-                <g key={s.key}>
-                  <linearGradient
-                    id={`${idPrefix}-stroke-${s.key}`}
-                    x1="0"
-                    y1="0"
-                    x2="0"
-                    y2="1"
-                  >
-                    <stop offset="0%" stopColor={s.color} />
-                    <stop offset="55%" stopColor={s.color} />
-                    <stop offset="100%" stopColor={DONE_COLOR} />
-                  </linearGradient>
-                  <linearGradient
-                    id={`${idPrefix}-fill-${s.key}`}
-                    x1="0"
-                    y1="0"
-                    x2="0"
-                    y2="1"
-                  >
-                    <stop offset="0%" stopColor={s.color} stopOpacity={0.28} />
-                    <stop
-                      offset="70%"
-                      stopColor={DONE_COLOR}
-                      stopOpacity={0.1}
-                    />
-                    <stop
-                      offset="100%"
-                      stopColor={DONE_COLOR}
-                      stopOpacity={0.02}
-                    />
-                  </linearGradient>
-                </g>
-              ))}
-            </defs>
             <CartesianGrid
               strokeDasharray="3 3"
               stroke="var(--chart-gridline)"
@@ -119,15 +81,17 @@ export function RoadmapAreaChart({
               }}
               itemStyle={{ color: "var(--chart-text-primary)" }}
             />
-            {series.map((s) => (
+            {series.map((s, seriesIndex) => (
               <Area
                 key={s.key}
                 type="monotone"
                 dataKey={s.key}
                 name={s.name}
-                stroke={`url(#${idPrefix}-stroke-${s.key})`}
+                stroke={s.color}
                 strokeWidth={2.5}
-                fill={`url(#${idPrefix}-fill-${s.key})`}
+                strokeDasharray={s.dashed ? DASH : undefined}
+                fill={s.color}
+                fillOpacity={seriesIndex === 0 ? 0.1 : 0}
                 dot={(props: { cx?: number; cy?: number; index?: number }) => {
                   const { cx, cy, index = 0 } = props;
                   const reachedZero =
@@ -163,13 +127,17 @@ export function RoadmapAreaChart({
       <ul className="mt-2 flex flex-wrap justify-center gap-x-5 gap-y-1 text-xs text-[color:var(--chart-text-secondary)]">
         {series.map((s) => (
           <li key={s.key} className="flex items-center gap-2">
-            <span
-              aria-hidden="true"
-              className="h-1 w-6 rounded-full"
-              style={{
-                background: `linear-gradient(90deg, ${s.color}, ${DONE_COLOR})`,
-              }}
-            />
+            <svg aria-hidden="true" width="24" height="4" className="shrink-0">
+              <line
+                x1="0"
+                y1="2"
+                x2="24"
+                y2="2"
+                stroke={s.color}
+                strokeWidth="2.5"
+                strokeDasharray={s.dashed ? DASH : undefined}
+              />
+            </svg>
             {s.name}
           </li>
         ))}

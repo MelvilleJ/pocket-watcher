@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { requireUser } from "@/lib/auth/dal";
 import {
+  getCashFlowTotals,
   getDepoNameLookup,
   listDeposWithBalances,
   listTransactions,
@@ -13,7 +14,9 @@ import { TransactionForm } from "@/components/forms/transaction-form";
 import { DepoList } from "@/components/depo-list";
 import { DepoBadge } from "@/components/depo-icon";
 import { DeleteButton } from "@/components/delete-button";
+import { FocalPanel } from "@/components/focal-panel";
 import { PageHero } from "@/components/page-hero";
+import { Money } from "@/components/money";
 
 const TYPE_FILTERS: { value?: TransactionType; label: string }[] = [
   { label: "All" },
@@ -70,19 +73,16 @@ export default async function TransactionsPage({
 
   const activeDepo = depos.find((d) => d.id === params.depo);
   const activeType = TYPE_FILTERS.find((f) => f.value && f.value === params.type)?.value;
-  const rows = await listTransactions(user.id, { depoId: activeDepo?.id, type: activeType });
+  const now = new Date();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+  const [rows, { moneyIn: monthIn, moneyOut: monthOut }] = await Promise.all([
+    listTransactions(user.id, { depoId: activeDepo?.id, type: activeType }),
+    getCashFlowTotals(user.id, monthStart, monthEnd, activeDepo?.id),
+  ]);
   const groups = groupByDay(rows);
 
   const total = depos.reduce((sum, d) => sum + d.balance, 0);
-  const now = new Date();
-  const thisMonth = rows.filter(
-    (r) => r.date.getFullYear() === now.getFullYear() && r.date.getMonth() === now.getMonth()
-  );
-  const monthIn = thisMonth.filter((r) => r.type === "income").reduce((s, r) => s + r.amount, 0);
-  const monthOut = thisMonth.reduce((s, r) => {
-    if (r.type === "expense") return r.paid ? s + r.amount : s;
-    return s + r.fee;
-  }, 0);
 
   const depoChip = (id: string | null) => {
     const depo = id ? lookup.get(id) : undefined;
@@ -96,15 +96,27 @@ export default async function TransactionsPage({
   };
 
   return (
-    <div className="page-accent-transactions flex flex-col gap-5">
+    <div className="flex flex-col gap-5">
       <PageHero
         title="Transactions"
         description="Log money in, money out, and moves between your depos, all in one place."
-        iconPath="M7 4 3 8l4 4M3 8h14M17 20l4-4-4-4M21 16H7"
-        stats={[
-          { label: activeDepo ? activeDepo.name : "Across depos", value: formatCurrency(activeDepo?.balance ?? total, user.currency) },
-          { label: "In this month", value: formatCurrency(monthIn, user.currency) },
-          { label: "Out this month", value: formatCurrency(monthOut, user.currency) },
+      />
+
+      <FocalPanel
+        label={activeDepo ? `In ${activeDepo.name}` : "Across your depos"}
+        value={
+          <Money
+            currency={user.currency}
+            amount={activeDepo?.balance ?? total}
+            className={`money-display ${(activeDepo?.balance ?? total) < 0 ? "text-[color:var(--status-critical)]" : ""}`}
+          />
+        }
+        rows={[
+          {
+            label: "In this month",
+            value: <Money currency={user.currency} amount={monthIn} className="text-[color:var(--status-good)]" />,
+          },
+          { label: "Out this month", value: <Money currency={user.currency} amount={monthOut} /> },
         ]}
       />
 

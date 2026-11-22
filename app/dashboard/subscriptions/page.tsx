@@ -5,7 +5,9 @@ import { cancelSubscription, deleteSubscription } from "@/lib/actions/subscripti
 import { SubscriptionForm } from "@/components/forms/subscription-form";
 import { DeleteButton } from "@/components/delete-button";
 import { BILLING_CYCLE_LABELS, calcMonthlyCost } from "@/lib/finance/subscriptions";
+import { FocalPanel } from "@/components/focal-panel";
 import { PageHero } from "@/components/page-hero";
+import { Money } from "@/components/money";
 
 function formatCurrency(value: number, currency: string) {
   return `${currency}${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -24,14 +26,18 @@ export default async function SubscriptionsPage() {
     .reduce((sum, r) => sum + calcMonthlyCost(r.billingCycle, Number(r.billedAmount)), 0);
 
   return (
-    <div className="page-accent-subscription flex flex-col gap-6">
+    <div className="flex flex-col gap-6">
       <PageHero
         title="Subscriptions"
         description="One row per subscription. Billed in every month it was active."
-        iconPath="M20 7h-9M15 3l-4 4 4 4M4 17h9M9 13l4 4-4 4"
-        stats={[
-          { label: "Monthly total", value: formatCurrency(totalMonthly, user.currency) },
-          { label: "Active", value: String(activeCount) },
+      />
+
+      <FocalPanel
+        label="Each month"
+        value={<Money currency={user.currency} amount={totalMonthly} className="money-display" />}
+        rows={[
+          { label: "Each year", value: <Money currency={user.currency} amount={totalMonthly * 12} /> },
+          { label: "Active subscriptions", value: String(activeCount) },
         ]}
       />
 
@@ -45,7 +51,7 @@ export default async function SubscriptionsPage() {
       <section className="overflow-x-auto rounded-xl border border-black/10 dark:border-white/10 bg-white dark:bg-zinc-950">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-black/10 dark:border-white/10 text-left text-zinc-500">
+            <tr className="border-b border-black/10 dark:border-white/10 text-left text-[color:var(--muted)]">
               <th className="px-4 py-3 font-medium">Name</th>
               <th className="px-4 py-3 font-medium">Category</th>
               <th className="px-4 py-3 font-medium">Billing cycle</th>
@@ -59,7 +65,7 @@ export default async function SubscriptionsPage() {
             {rows.map((row) => (
               <tr key={row.id} className="border-b border-black/5 dark:border-white/5">
                 <td className="px-4 py-2">{row.name}</td>
-                <td className="px-4 py-2 text-zinc-500">{row.categoryName}</td>
+                <td className="px-4 py-2 text-[color:var(--muted)]">{row.categoryName}</td>
                 <td className="px-4 py-2">{BILLING_CYCLE_LABELS[row.billingCycle]}</td>
                 <td className="px-4 py-2 text-right tabular-nums">
                   {formatCurrency(Number(row.billedAmount), user.currency)}
@@ -72,7 +78,7 @@ export default async function SubscriptionsPage() {
                     className={
                       row.status === "active"
                         ? "text-[color:var(--status-good)]"
-                        : "text-zinc-400"
+                        : "text-[color:var(--muted)]"
                     }
                   >
                     {row.status === "active" ? "Active" : "Cancelled"}
@@ -92,7 +98,7 @@ export default async function SubscriptionsPage() {
             ))}
             {rows.length === 0 && (
               <tr>
-                <td colSpan={7} className="px-4 py-6 text-center text-zinc-500">
+                <td colSpan={7} className="px-4 py-6 text-center text-[color:var(--muted)]">
                   No subscriptions logged yet.
                 </td>
               </tr>

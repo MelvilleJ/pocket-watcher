@@ -1,13 +1,15 @@
 import { CameraView, useCameraPermissions } from "expo-camera";
 import { useRouter } from "expo-router";
 import { useRef, useState } from "react";
-import { Pressable, StyleSheet, View } from "react-native";
+import { Image, Pressable, StyleSheet, View } from "react-native";
 
-import { ThemedText } from "@/components/themed-text";
-import { ThemedView } from "@/components/themed-view";
+import { Button } from "@/components/ui/controls";
+import { AppText } from "@/components/ui/text";
 import { Spacing } from "@/constants/theme";
+import { usePalette } from "@/lib/theme";
 
 export default function ScanReceiptScreen() {
+  const palette = usePalette();
   const router = useRouter();
   const [permission, requestPermission] = useCameraPermissions();
   const [photoUri, setPhotoUri] = useState<string | null>(null);
@@ -17,14 +19,12 @@ export default function ScanReceiptScreen() {
 
   if (!permission.granted) {
     return (
-      <ThemedView style={styles.centered}>
-        <ThemedText style={styles.message}>
+      <View style={[styles.centered, { backgroundColor: palette.background }]}>
+        <AppText size={16} weight="semibold" align="center">
           Pocket Watcher needs camera access to scan receipts.
-        </ThemedText>
-        <Pressable style={styles.button} onPress={requestPermission}>
-          <ThemedText style={styles.buttonText}>Grant camera access</ThemedText>
-        </Pressable>
-      </ThemedView>
+        </AppText>
+        <Button label="Grant camera access" onPress={requestPermission} />
+      </View>
     );
   }
 
@@ -33,45 +33,40 @@ export default function ScanReceiptScreen() {
     if (photo) setPhotoUri(photo.uri);
   }
 
-  return (
-    <ThemedView style={styles.container}>
-      {photoUri ? (
-        <View style={styles.centered}>
-          <ThemedText type="subtitle">Receipt captured</ThemedText>
-          <ThemedText themeColor="textSecondary" style={styles.message}>
-            OCR-based auto-fill is coming in a future update. For now, use the photo as a
-            reference and log the expense manually.
-          </ThemedText>
-          <Pressable style={styles.button} onPress={() => setPhotoUri(null)}>
-            <ThemedText style={styles.buttonText}>Retake</ThemedText>
-          </Pressable>
-          <Pressable style={[styles.button, styles.secondaryButton]} onPress={() => router.back()}>
-            <ThemedText style={styles.buttonText}>Done</ThemedText>
-          </Pressable>
+  if (photoUri) {
+    return (
+      <View style={[styles.centered, { backgroundColor: palette.background }]}>
+        <Image source={{ uri: photoUri }} style={[styles.preview, { borderColor: palette.border }]} resizeMode="cover" />
+        <AppText size={20} weight="bold" align="center">
+          Receipt captured
+        </AppText>
+        <AppText size={14} color="muted" align="center">
+          Automatic reading is coming in a future update. For now, use the photo as a reference and log the expense manually.
+        </AppText>
+        <View style={{ flexDirection: "row", gap: Spacing.two }}>
+          <Button label="Retake" variant="outline" onPress={() => setPhotoUri(null)} />
+          <Button label="Done" onPress={() => router.back()} />
         </View>
-      ) : (
-        <>
-          <CameraView ref={cameraRef} style={styles.camera} facing="back" />
-          <Pressable style={styles.shutter} onPress={takePicture}>
-            <View style={styles.shutterInner} />
-          </Pressable>
-        </>
-      )}
-    </ThemedView>
+      </View>
+    );
+  }
+
+  return (
+    <View style={{ flex: 1, backgroundColor: "#000" }}>
+      <CameraView ref={cameraRef} style={{ flex: 1 }} facing="back" />
+      <Pressable style={styles.shutter} onPress={takePicture} accessibilityLabel="Take photo">
+        <View style={styles.shutterInner} />
+      </Pressable>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  camera: { flex: 1 },
-  centered: { flex: 1, alignItems: "center", justifyContent: "center", padding: Spacing.four, gap: Spacing.three },
-  message: { textAlign: "center" },
-  button: { backgroundColor: "#2a78d6", borderRadius: 8, paddingHorizontal: Spacing.four, paddingVertical: Spacing.two },
-  secondaryButton: { backgroundColor: "#52514e" },
-  buttonText: { color: "#fff", fontWeight: "600" },
+  centered: { flex: 1, alignItems: "center", justifyContent: "center", padding: Spacing.six, gap: Spacing.four },
+  preview: { width: 180, height: 240, borderRadius: 14, borderWidth: 1 },
   shutter: {
     position: "absolute",
-    bottom: Spacing.five,
+    bottom: Spacing.eight,
     alignSelf: "center",
     width: 72,
     height: 72,

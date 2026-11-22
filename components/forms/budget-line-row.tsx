@@ -91,7 +91,7 @@ export function BudgetLineRow({
       <td
         className={`px-4 py-2 text-right tabular-nums ${
           variance === 0
-            ? "text-zinc-500"
+            ? "text-[color:var(--muted)]"
             : isGood
               ? "text-[color:var(--status-good)]"
               : "text-[color:var(--status-critical)]"

@@ -1,13 +1,15 @@
 import { Link, Redirect } from "expo-router";
 import { useState } from "react";
-import { ActivityIndicator, Pressable, StyleSheet, TextInput } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { View } from "react-native";
 
-import { ThemedText } from "@/components/themed-text";
-import { ThemedView } from "@/components/themed-view";
+import { AuthShell } from "@/components/auth-shell";
+import { ServerUrlField } from "@/components/server-url-field";
+import { Button, Field, TextField } from "@/components/ui/controls";
+import { Notice } from "@/components/ui/layout";
+import { AppText } from "@/components/ui/text";
 import { Spacing } from "@/constants/theme";
-import { useAuth } from "@/lib/auth-context";
 import { ApiError } from "@/lib/api";
+import { useAuth } from "@/lib/auth-context";
 
 export default function SignupScreen() {
   const { user, loading, signup } = useAuth();
@@ -25,70 +27,59 @@ export default function SignupScreen() {
     try {
       await signup(name, email, password);
     } catch (e) {
-      setError(e instanceof ApiError ? e.message : "Something went wrong.");
+      setError(e instanceof ApiError ? e.message : "Couldn't reach the server. Check the server address below.");
     } finally {
       setSubmitting(false);
     }
   }
 
   return (
-    <ThemedView style={styles.container}>
-      <SafeAreaView style={styles.safeArea}>
-        <ThemedText type="title" style={styles.title}>
-          Pocket Watcher
-        </ThemedText>
-        <ThemedText type="subtitle">Create your account</ThemedText>
-
-        <TextInput placeholder="Name" value={name} onChangeText={setName} style={styles.input} />
-        <TextInput
-          placeholder="Email"
-          autoCapitalize="none"
-          keyboardType="email-address"
-          value={email}
-          onChangeText={setEmail}
-          style={styles.input}
-        />
-        <TextInput
-          placeholder="Password"
-          secureTextEntry
-          value={password}
-          onChangeText={setPassword}
-          style={styles.input}
-        />
-
-        {error && <ThemedText style={styles.error}>{error}</ThemedText>}
-
-        <Pressable style={styles.button} onPress={onSubmit} disabled={submitting}>
-          {submitting ? <ActivityIndicator color="#fff" /> : <ThemedText style={styles.buttonText}>Sign up</ThemedText>}
-        </Pressable>
-
-        <Link href="/login" style={styles.link}>
-          <ThemedText type="link">Already have an account? Log in</ThemedText>
+    <AuthShell
+      title="Create your account"
+      description="Track every depo, lock a budget each month, and see when your debts will be paid off."
+    >
+      <View style={{ gap: Spacing.four, marginTop: Spacing.eight }}>
+        <Field label="Your name">
+          <TextField value={name} onChangeText={setName} placeholder="Your name" autoComplete="name" />
+        </Field>
+        <Field label="Email address">
+          <TextField
+            value={email}
+            onChangeText={setEmail}
+            placeholder="you@example.com"
+            autoCapitalize="none"
+            autoComplete="email"
+            keyboardType="email-address"
+          />
+        </Field>
+        <Field label="Password">
+          <TextField
+            value={password}
+            onChangeText={setPassword}
+            placeholder="At least 8 characters"
+            secureTextEntry
+            autoComplete="new-password"
+          />
+        </Field>
+        <AppText size={12} color="mutedSoft">
+          Use at least 8 characters with a letter and a number.
+        </AppText>
+        {error && <Notice tone="critical">{error}</Notice>}
+        <Button label="Create account" size="lg" loading={submitting} onPress={onSubmit} />
+      </View>
+      <View style={{ flexDirection: "row", justifyContent: "center", gap: 6, marginTop: Spacing.six }}>
+        <AppText size={14} color="muted">
+          Already have an account?
+        </AppText>
+        <Link href="/login">
+          <AppText size={14} weight="bold" color="primaryDeep">
+            Log in
+          </AppText>
         </Link>
-      </SafeAreaView>
-    </ThemedView>
+      </View>
+      <View style={{ marginTop: Spacing.six }}>
+        <ServerUrlField />
+      </View>
+    </AuthShell>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1 },
-  safeArea: { flex: 1, padding: Spacing.four, gap: Spacing.two, justifyContent: "center" },
-  title: { marginBottom: Spacing.one },
-  input: {
-    borderWidth: 1,
-    borderColor: "#c3c2b7",
-    borderRadius: 8,
-    padding: Spacing.two,
-    fontSize: 16,
-  },
-  button: {
-    backgroundColor: "#2a78d6",
-    borderRadius: 8,
-    padding: Spacing.three,
-    alignItems: "center",
-    marginTop: Spacing.two,
-  },
-  buttonText: { color: "#fff", fontWeight: "600" },
-  error: { color: "#d03b3b" },
-  link: { marginTop: Spacing.three, alignSelf: "center" },
-});

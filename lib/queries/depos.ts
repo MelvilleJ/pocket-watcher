@@ -100,6 +100,54 @@ export async function listDeposWithBalances(userId: string): Promise<DepoWithBal
   });
 }
 
+// Fees count as money out for the depo that sent the transfer, matching listDeposWithBalances.
+export async function getCashFlowTotals(userId: string, start: Date, end: Date, depoId?: string) {
+  const [[incomeTotal], [expenseTotal], [feeTotal]] = await Promise.all([
+    db
+      .select({ total: sum(income.amount) })
+      .from(income)
+      .where(
+        and(
+          eq(income.userId, userId),
+          isNull(income.deletedAt),
+          gte(income.date, start),
+          lte(income.date, end),
+          depoId ? eq(income.depoId, depoId) : undefined
+        )
+      ),
+    db
+      .select({ total: sum(expenses.amount) })
+      .from(expenses)
+      .where(
+        and(
+          eq(expenses.userId, userId),
+          isNull(expenses.deletedAt),
+          eq(expenses.paid, true),
+          gte(expenses.date, start),
+          lte(expenses.date, end),
+          depoId ? eq(expenses.depoId, depoId) : undefined
+        )
+      ),
+    db
+      .select({ total: sum(depoTransfers.fee) })
+      .from(depoTransfers)
+      .where(
+        and(
+          eq(depoTransfers.userId, userId),
+          isNull(depoTransfers.deletedAt),
+          gte(depoTransfers.date, start),
+          lte(depoTransfers.date, end),
+          depoId ? eq(depoTransfers.fromDepoId, depoId) : undefined
+        )
+      ),
+  ]);
+
+  return {
+    moneyIn: Number(incomeTotal?.total ?? 0),
+    moneyOut: Number(expenseTotal?.total ?? 0) + Number(feeTotal?.total ?? 0),
+  };
+}
+
 export async function listTransactions(
   userId: string,
   filters: { depoId?: string; type?: TransactionType } = {},

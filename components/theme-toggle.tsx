@@ -71,10 +71,9 @@ export function ThemeToggle() {
         aria-checked={dark}
         aria-label="Toggle dark mode"
         onClick={toggleTheme}
-        className="relative h-7 w-12 shrink-0 rounded-full p-1"
-        animate={{ backgroundColor: dark ? "#5b54e0" : "#d8dceb" }}
-        whileTap={reduceMotion ? undefined : { scale: 0.94 }}
-        transition={{ duration: reduceMotion ? 0 : 0.2 }}
+        className="relative h-7 w-12 shrink-0 rounded-full p-1 transition-colors duration-200"
+        style={{ backgroundColor: dark ? "var(--primary)" : "var(--border-strong)" }}
+        whileTap={reduceMotion ? undefined : { scale: 0.98 }}
       >
         <motion.span
           className="block h-5 w-5 rounded-full bg-white shadow-sm"

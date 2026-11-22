@@ -8,7 +8,7 @@ import { subscriptions } from "@/lib/db/schema";
 import { requireUser } from "@/lib/auth/dal";
 import { recordAudit } from "@/lib/audit";
 import { SubscriptionSchema, type FormState } from "@/lib/validation/entities";
-import { syncBudgetLinesForUser } from "@/lib/actions/budgets";
+import { syncBudgetLinesForUser } from "@/lib/budgets";
 import { generateSubscriptionCharges } from "@/lib/subscription-charges";
 import { resolveExpenseCategory } from "@/lib/categories";
 

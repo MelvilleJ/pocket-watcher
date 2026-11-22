@@ -47,7 +47,7 @@ export function DebtRoadmapPlanner({
   const interestSaved = snowball.totalInterestPaid - avalanche.totalInterestPaid;
 
   if (debts.length === 0) {
-    return <p className="text-sm text-zinc-500">Add debts to see a roadmap.</p>;
+    return <p className="text-sm text-[color:var(--muted)]">Add debts to see a roadmap.</p>;
   }
 
   return (
@@ -73,19 +73,25 @@ export function DebtRoadmapPlanner({
 
       <section className="rounded-xl border border-black/10 dark:border-white/10 bg-white dark:bg-zinc-950 p-5">
         <h2 className="text-base font-semibold text-zinc-900 dark:text-zinc-50">
-          Total balance over time
+          When you&apos;ll be debt-free: avalanche vs snowball
         </h2>
         <div className="mt-4">
           <RoadmapAreaChart
             data={chartData}
             currency={currency}
+            summary={`Total debt balance over time. Avalanche is debt-free in ${monthsFromNowLabel(avalanche.payoffMonth)}, snowball in ${monthsFromNowLabel(snowball.payoffMonth)}.`}
             series={[
-              { key: "avalanche", name: "Avalanche (highest interest first)", color: "var(--status-critical)" },
-              { key: "snowball", name: "Snowball (smallest balance first)", color: "var(--status-serious)" },
+              { key: "avalanche", name: "Avalanche (highest interest first)", color: "var(--primary)" },
+              {
+                key: "snowball",
+                name: "Snowball (smallest balance first)",
+                color: "var(--chart-text-secondary)",
+                dashed: true,
+              },
             ]}
           />
         </div>
-        <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-400">
+        <p className="mt-2 text-sm text-[color:var(--muted)] dark:text-zinc-400">
           {interestSaved > 0.5
             ? `Avalanche saves ${formatCurrency(interestSaved, currency)} in interest vs. snowball at this extra payment.`
             : "Both strategies cost about the same in interest at this extra payment."}
@@ -112,13 +118,13 @@ function RoadmapTable({
   return (
     <section className="rounded-xl border border-black/10 dark:border-white/10 bg-white dark:bg-zinc-950 p-5">
       <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">{title}</h3>
-      <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+      <p className="mt-1 text-sm text-[color:var(--muted)] dark:text-zinc-400">
         Debt-free in {monthsFromNowLabel(result.payoffMonth)} · Total interest{" "}
         {formatCurrency(result.totalInterestPaid, currency)}
       </p>
       <table className="mt-3 w-full text-sm">
         <thead>
-          <tr className="text-left text-zinc-500">
+          <tr className="text-left text-[color:var(--muted)]">
             <th className="py-1 font-medium">Debt</th>
             <th className="py-1 font-medium text-right">Paid off in</th>
             <th className="py-1 font-medium text-right">Interest</th>

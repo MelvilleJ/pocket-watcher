@@ -8,8 +8,6 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   return (
     <div className="dashboard-shell relative min-h-screen flex-1 overflow-x-hidden">
-      <div className="dashboard-glow dashboard-glow-one" aria-hidden="true" />
-      <div className="dashboard-glow dashboard-glow-two" aria-hidden="true" />
       <DashboardNav
         userName={user.name}
         logoutControl={

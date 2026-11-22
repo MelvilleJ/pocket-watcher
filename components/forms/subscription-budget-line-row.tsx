@@ -43,14 +43,14 @@ export function SubscriptionBudgetLineRow({
     <tr className="border-b border-black/5 dark:border-white/5">
       <td className="px-4 py-2">
         {label}
-        <span className="ml-2 text-xs text-zinc-500">
+        <span className="ml-2 text-xs text-[color:var(--muted)]">
           ({currency}
           {monthlyCost.toFixed(2)}/mo)
         </span>
       </td>
       <td className="px-4 py-2 text-right">
         <label className="inline-flex items-center gap-2 text-sm">
-          <span className="text-zinc-500">{checked ? "Paying" : "Skipping"}</span>
+          <span className="text-[color:var(--muted)]">{checked ? "Paying" : "Skipping"}</span>
           <input
             type="checkbox"
             checked={checked}
@@ -66,7 +66,7 @@ export function SubscriptionBudgetLineRow({
       <td
         className={`px-4 py-2 text-right tabular-nums ${
           variance === 0
-            ? "text-zinc-500"
+            ? "text-[color:var(--muted)]"
             : variance < 0
               ? "text-[color:var(--status-good)]"
               : "text-[color:var(--status-critical)]"
