@@ -4,6 +4,7 @@ import { SettingsForm } from "@/components/forms/settings-form";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { revokeSession } from "@/lib/actions/settings";
 import { PageHero } from "@/components/page-hero";
+import { DeleteAccountButton, ImportDataButton } from "@/components/data-tools";
 
 export default async function SettingsPage() {
   const user = await requireUser();
@@ -32,6 +33,23 @@ export default async function SettingsPage() {
       <section className="rounded-xl border border-black/10 bg-white p-5 dark:border-white/10 dark:bg-zinc-950">
         <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Appearance</h2>
         <ThemeToggle />
+      </section>
+
+      <section className="rounded-xl border border-black/10 dark:border-white/10 bg-white dark:bg-zinc-950 p-5">
+        <h2 className="mb-1 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Your data</h2>
+        <p className="mb-4 text-xs text-[color:var(--muted)]">
+          Export downloads a full backup (including your audit history) as a JSON file. Import replaces all your
+          current data with the contents of a backup file. Every export and import is recorded in your audit log.
+        </p>
+        <div className="flex flex-wrap gap-3">
+          <a
+            href="/api/export"
+            className="inline-flex min-h-[38px] items-center rounded-md bg-zinc-900 dark:bg-zinc-50 px-4 py-2 text-sm font-medium text-white dark:text-zinc-900"
+          >
+            Export data
+          </a>
+          <ImportDataButton />
+        </div>
       </section>
 
       <section className="overflow-x-auto rounded-xl border border-black/10 dark:border-white/10 bg-white dark:bg-zinc-950">
@@ -82,6 +100,16 @@ export default async function SettingsPage() {
             })}
           </tbody>
         </table>
+      </section>
+
+      <section className="rounded-xl border border-red-300/60 dark:border-red-500/30 bg-white p-5 dark:bg-zinc-950">
+        <h2 className="mb-1 text-sm font-semibold text-red-700 dark:text-red-400">Danger zone</h2>
+        <p className="mb-4 text-xs text-[color:var(--muted)]">
+          Deleting your account permanently erases your account and all data — transactions, budgets, goals, and
+          sessions — and can&rsquo;t be undone. The server keeps a record of the deletion, including a summary of what
+          was removed. If you want to keep anything, export a backup first, then re-import it after signing up again.
+        </p>
+        <DeleteAccountButton email={user.email} />
       </section>
     </div>
   );

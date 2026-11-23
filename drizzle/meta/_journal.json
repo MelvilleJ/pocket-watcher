@@ -71,6 +71,13 @@
       "when": 1790903383256,
       "tag": "0009_add_subscription_charges",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1795463941372,
+      "tag": "0010_dark_typhoid_mary",
+      "breakpoints": true
     }
   ]
 }

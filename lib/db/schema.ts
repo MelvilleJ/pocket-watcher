@@ -31,6 +31,9 @@ export const auditActionEnum = pgEnum("audit_action", [
   "create",
   "update",
   "delete",
+  "export",
+  "import",
+  "account_deletion",
 ]);
 
 export const sourceEnum = pgEnum("change_source", ["web", "mobile"]);
@@ -78,7 +81,8 @@ export const sessions = pgTable("sessions", {
 
 export const auditLogs = pgTable("audit_logs", {
   id: uuid("id").defaultRandom().primaryKey(),
-  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  // Nullable + SET NULL so the account-deletion record survives the user row being wiped.
+  userId: uuid("user_id").references(() => users.id, { onDelete: "set null" }),
   entityType: text("entity_type").notNull(),
   entityId: uuid("entity_id").notNull(),
   action: auditActionEnum("action").notNull(),

@@ -15,12 +15,16 @@ const ENTITY_LABELS: Record<string, string> = {
   goal_payment: "Goal payment",
   budget: "Budget",
   user: "Profile",
+  account: "Account",
 };
 
 const ACTION_LABELS: Record<string, string> = {
   create: "Created",
   update: "Updated",
   delete: "Deleted",
+  export: "Data exported",
+  import: "Data imported",
+  account_deletion: "Account deleted",
 };
 
 export default async function AuditPage() {

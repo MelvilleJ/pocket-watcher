@@ -1,8 +1,8 @@
 import "server-only";
 import { db } from "@/lib/db";
-import { auditLogs } from "@/lib/db/schema";
+import { auditActionEnum, auditLogs } from "@/lib/db/schema";
 
-type AuditAction = "create" | "update" | "delete";
+type AuditAction = (typeof auditActionEnum.enumValues)[number];
 type AuditSource = "web" | "mobile";
 
 export async function recordAudit(params: {
