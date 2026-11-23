@@ -1,4 +1,5 @@
 import { requireUser } from "@/lib/auth/dal";
+import { StackedItem, StackedList } from "@/components/stacked-list";
 import { getDebtsWithBalances } from "@/lib/queries/debts";
 import { deleteDebt, deleteDebtPayment } from "@/lib/actions/debts";
 import { DebtForm } from "@/components/forms/debt-form";
@@ -70,8 +71,8 @@ export default async function DebtsPage() {
         </div>
       </section>
 
-      <section className="overflow-x-auto rounded-xl border border-black/10 dark:border-white/10 bg-white dark:bg-zinc-950">
-        <table className="w-full text-sm">
+      <section className="@container rounded-xl border border-black/10 dark:border-white/10 bg-white dark:bg-zinc-950">
+        <table className="hidden w-full text-sm @3xl:table">
           <thead>
             <tr className="border-b border-black/10 dark:border-white/10 text-left text-[color:var(--muted)]">
               <th className="px-4 py-3 font-medium">Name</th>
@@ -118,6 +119,26 @@ export default async function DebtsPage() {
             )}
           </tbody>
         </table>
+        <StackedList className="@3xl:hidden" isEmpty={debts.length === 0} emptyMessage="No debts logged yet.">
+          {debts.map((d) => (
+            <StackedItem
+              key={d.id}
+              title={d.name}
+              value={formatCurrency(d.currentBalance, user.currency)}
+              meta={[
+                d.lenderType,
+                `${(d.interestRate * 100).toFixed(2)}% rate`,
+                `Min. ${formatCurrency(d.minMonthlyPayment, user.currency)}/mo`,
+              ]}
+              progress={d.percentPaidOff}
+              actions={<DeleteButton action={deleteDebt.bind(null, d.id)} />}
+            >
+              <p className="text-xs text-[color:var(--muted)]">
+                {(d.percentPaidOff * 100).toFixed(0)}% paid of {formatCurrency(d.originalAmount, user.currency)}
+              </p>
+            </StackedItem>
+          ))}
+        </StackedList>
       </section>
 
       <section className="rounded-xl border border-black/10 dark:border-white/10 bg-white dark:bg-zinc-950 p-5">
@@ -125,8 +146,8 @@ export default async function DebtsPage() {
         <DebtPaymentForm debts={debts.map((d) => ({ id: d.id, name: d.name }))} />
       </section>
 
-      <section className="overflow-x-auto rounded-xl border border-black/10 dark:border-white/10 bg-white dark:bg-zinc-950">
-        <table className="w-full text-sm">
+      <section className="@container rounded-xl border border-black/10 dark:border-white/10 bg-white dark:bg-zinc-950">
+        <table className="hidden w-full text-sm @2xl:table">
           <thead>
             <tr className="border-b border-black/10 dark:border-white/10 text-left text-[color:var(--muted)]">
               <th className="px-4 py-3 font-medium">Date</th>
@@ -159,6 +180,17 @@ export default async function DebtsPage() {
             )}
           </tbody>
         </table>
+        <StackedList className="@2xl:hidden" isEmpty={payments.length === 0} emptyMessage="No payments recorded yet.">
+          {payments.map((p) => (
+            <StackedItem
+              key={p.id}
+              title={debtNameById.get(p.debtId) ?? "-"}
+              value={formatCurrency(Number(p.amount), user.currency)}
+              meta={[p.date.toISOString().slice(0, 10), p.description]}
+              actions={<DeleteButton action={deleteDebtPayment.bind(null, p.id)} />}
+            />
+          ))}
+        </StackedList>
       </section>
 
       <DebtRoadmapPlanner debts={roadmapInput} currency={user.currency} minTotalPayment={minTotalPayment} />

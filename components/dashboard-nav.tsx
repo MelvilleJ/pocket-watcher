@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { motion, useReducedMotion } from "framer-motion";
-import type { ReactNode } from "react";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { usePathname } from "next/navigation";
 import { BrandMark } from "@/components/brand-mark";
 
@@ -15,7 +15,8 @@ type NavIconName =
   | "debt"
   | "goal"
   | "history"
-  | "settings";
+  | "settings"
+  | "more";
 
 type NavLinkItem = { href: string; label: string; icon: NavIconName };
 
@@ -51,7 +52,13 @@ const NAV_GROUPS: { label: string; links: NavLinkItem[] }[] = [
   },
 ];
 
-const MOBILE_LINKS = NAV_GROUPS.flatMap((group) => group.links);
+const ALL_LINKS = NAV_GROUPS.flatMap((group) => group.links);
+const TAB_HREFS = ["/dashboard", "/dashboard/transactions", "/dashboard/budget", "/dashboard/calendar"];
+const TAB_LINKS = TAB_HREFS.map((href) => ALL_LINKS.find((link) => link.href === href)!);
+const MORE_GROUPS = NAV_GROUPS.map((group) => ({
+  ...group,
+  links: group.links.filter((link) => !TAB_HREFS.includes(link.href)),
+})).filter((group) => group.links.length > 0);
 
 function isCurrentPath(pathname: string, href: string) {
   if (href === "/dashboard" || href === "/dashboard/debts") return pathname === href;
@@ -62,17 +69,21 @@ export function DashboardNav({ userName, logoutControl }: { userName: string; lo
   const pathname = usePathname();
   const reduceMotion = useReducedMotion();
 
-  const renderLink = (link: NavLinkItem, variant: "desktop" | "mobile") => {
+  const [moreOpen, setMoreOpen] = useState(false);
+  const moreActive = MORE_GROUPS.some((group) => group.links.some((link) => isCurrentPath(pathname, link.href)));
+
+  const renderLink = (link: NavLinkItem) => {
     const active = isCurrentPath(pathname, link.href);
     return (
       <Link
-        key={`${variant}-${link.href}`}
+        key={link.href}
         href={link.href}
-        className={`nav-link ${variant === "mobile" ? "nav-link-mobile" : ""} ${active ? "is-active" : ""}`}
+        aria-current={active ? "page" : undefined}
+        className={`nav-link ${active ? "is-active" : ""}`}
       >
         {active && (
           <motion.span
-            layoutId={`active-nav-${variant}`}
+            layoutId="active-nav-desktop"
             className="nav-active-pill"
             transition={reduceMotion ? { duration: 0 } : { type: "spring", stiffness: 430, damping: 34 }}
           />
@@ -97,40 +108,168 @@ export function DashboardNav({ userName, logoutControl }: { userName: string; lo
           {NAV_GROUPS.map((group) => (
             <div key={group.label}>
               <p className="nav-group-label">{group.label}</p>
-              <div className="flex flex-col gap-0.5">{group.links.map((link) => renderLink(link, "desktop"))}</div>
+              <div className="flex flex-col gap-0.5">{group.links.map(renderLink)}</div>
             </div>
           ))}
         </nav>
 
-        <div className="sidebar-profile mt-auto flex items-center gap-3 rounded-xl p-2.5">
-          <div className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-[color:var(--surface-inset)] text-sm font-bold text-[color:var(--primary-deep)]">
-            {userName.slice(0, 1).toUpperCase()}
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-[13px] font-semibold text-[color:var(--foreground)]">{userName}</p>
-            <p className="truncate text-[11px] text-[color:var(--muted-soft)]">Personal account</p>
-          </div>
-          {logoutControl}
-        </div>
+        <ProfileCard userName={userName} logoutControl={logoutControl} />
       </aside>
 
       <header className="mobile-dashboard-header fixed inset-x-0 top-0 z-40 lg:hidden">
         <div className="flex items-center justify-between px-4 py-3">
           <Link href="/dashboard" className="flex items-center gap-2.5">
-            <BrandMark className="h-9 w-9" />
+            <BrandMark className="h-8 w-8" />
             <span className="brand-wordmark text-[17px] text-[color:var(--foreground)]">Pocket Watcher</span>
           </Link>
-          <div className="flex items-center gap-2">
-            <span className="grid h-8 w-8 place-items-center rounded-lg bg-[color:var(--surface-inset)] text-xs font-bold text-[color:var(--primary-deep)]">
-              {userName.slice(0, 1).toUpperCase()}
-            </span>
-            {logoutControl}
-          </div>
+          <Link
+            href="/dashboard/settings"
+            aria-label="Settings"
+            className="grid h-8 w-8 place-items-center rounded-lg bg-[color:var(--surface-inset)] text-xs font-bold text-[color:var(--primary-deep)]"
+          >
+            {userName.slice(0, 1).toUpperCase()}
+          </Link>
         </div>
-        <nav className="mobile-nav-scroll flex gap-1 overflow-x-auto px-3 pb-3">
-          {MOBILE_LINKS.map((link) => renderLink(link, "mobile"))}
-        </nav>
       </header>
+
+      <nav aria-label="Main" className="mobile-tab-bar fixed inset-x-0 bottom-0 z-40 lg:hidden">
+        <div className="mx-auto grid max-w-lg grid-cols-5">
+          {TAB_LINKS.map((link) => {
+            const active = !moreOpen && isCurrentPath(pathname, link.href);
+            return (
+              <Link
+                key={link.href}
+                href={link.href}
+                aria-current={active ? "page" : undefined}
+                onClick={() => setMoreOpen(false)}
+                className={`mobile-tab ${active ? "is-active" : ""}`}
+              >
+                <NavIcon name={link.icon} />
+                <span>{link.label}</span>
+              </Link>
+            );
+          })}
+          <button
+            type="button"
+            aria-expanded={moreOpen}
+            aria-controls="mobile-more-sheet"
+            onClick={() => setMoreOpen((open) => !open)}
+            className={`mobile-tab ${moreOpen || moreActive ? "is-active" : ""}`}
+          >
+            <NavIcon name="more" />
+            <span>More</span>
+          </button>
+        </div>
+      </nav>
+
+      <AnimatePresence>
+        {moreOpen && (
+          <MoreSheet
+            pathname={pathname}
+            userName={userName}
+            logoutControl={logoutControl}
+            reduceMotion={Boolean(reduceMotion)}
+            onClose={() => setMoreOpen(false)}
+          />
+        )}
+      </AnimatePresence>
+    </>
+  );
+}
+
+function ProfileCard({ userName, logoutControl }: { userName: string; logoutControl: ReactNode }) {
+  return (
+    <div className="sidebar-profile mt-auto flex items-center gap-3 rounded-xl p-2.5">
+      <div className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-[color:var(--surface-inset)] text-sm font-bold text-[color:var(--primary-deep)]">
+        {userName.slice(0, 1).toUpperCase()}
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-[13px] font-semibold text-[color:var(--foreground)]">{userName}</p>
+        <p className="truncate text-[11px] text-[color:var(--muted-soft)]">Personal account</p>
+      </div>
+      {logoutControl}
+    </div>
+  );
+}
+
+function MoreSheet({
+  pathname,
+  userName,
+  logoutControl,
+  reduceMotion,
+  onClose,
+}: {
+  pathname: string;
+  userName: string;
+  logoutControl: ReactNode;
+  reduceMotion: boolean;
+  onClose: () => void;
+}) {
+  const sheetRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    sheetRef.current?.querySelector<HTMLElement>("a")?.focus();
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", onKey);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [onClose]);
+
+  return (
+    <>
+      <motion.div
+        className="mobile-sheet-backdrop fixed inset-0 z-40 lg:hidden"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: reduceMotion ? 0 : 0.18 }}
+        onClick={onClose}
+      />
+      <motion.div
+        ref={sheetRef}
+        id="mobile-more-sheet"
+        role="dialog"
+        aria-modal="true"
+        aria-label="More pages"
+        className="mobile-sheet fixed inset-x-0 bottom-0 z-40 lg:hidden"
+        initial={reduceMotion ? { opacity: 0 } : { y: "100%" }}
+        animate={reduceMotion ? { opacity: 1 } : { y: 0 }}
+        exit={reduceMotion ? { opacity: 0 } : { y: "100%" }}
+        transition={reduceMotion ? { duration: 0 } : { type: "spring", stiffness: 420, damping: 40 }}
+      >
+        <div className="mx-auto flex max-w-lg flex-col gap-5 px-4 pb-4 pt-3">
+          <span aria-hidden="true" className="mx-auto h-1 w-10 rounded-full bg-[color:var(--border)]" />
+          {MORE_GROUPS.map((group) => (
+            <div key={group.label}>
+              <p className="nav-group-label">{group.label}</p>
+              <div className="grid grid-cols-2 gap-2">
+                {group.links.map((link) => {
+                  const active = isCurrentPath(pathname, link.href);
+                  return (
+                    <Link
+                      key={link.href}
+                      href={link.href}
+                      onClick={onClose}
+                      aria-current={active ? "page" : undefined}
+                      className={`mobile-sheet-link ${active ? "is-active" : ""}`}
+                    >
+                      <NavIcon name={link.icon} />
+                      <span>{link.label}</span>
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+          <ProfileCard userName={userName} logoutControl={logoutControl} />
+        </div>
+      </motion.div>
     </>
   );
 }
@@ -189,6 +328,13 @@ function NavIcon({ name }: { name: NavIconName }) {
       <>
         <path d="M3 12a9 9 0 1 0 3-6.7L3 8" />
         <path d="M3 3v5h5M12 7v5l3 2" />
+      </>
+    ),
+    more: (
+      <>
+        <circle cx="5" cy="12" r="1.4" />
+        <circle cx="12" cy="12" r="1.4" />
+        <circle cx="19" cy="12" r="1.4" />
       </>
     ),
     settings: (

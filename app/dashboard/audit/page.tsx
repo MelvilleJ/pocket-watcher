@@ -1,4 +1,5 @@
 import { requireUser } from "@/lib/auth/dal";
+import { StackedItem, StackedList } from "@/components/stacked-list";
 import { listAuditLogs } from "@/lib/queries/audit";
 import { PageHero } from "@/components/page-hero";
 import { AuditChanges } from "@/components/audit-changes";
@@ -45,8 +46,8 @@ export default async function AuditPage() {
         </p>
       )}
 
-      <section className="overflow-x-auto rounded-xl border border-black/10 dark:border-white/10 bg-white dark:bg-zinc-950">
-        <table className="w-full text-sm">
+      <section className="@container rounded-xl border border-black/10 dark:border-white/10 bg-white dark:bg-zinc-950">
+        <table className="hidden w-full text-sm @3xl:table">
           <thead>
             <tr className="border-b border-black/10 dark:border-white/10 text-left text-[color:var(--muted)]">
               <th className="px-4 py-3 font-medium">When</th>
@@ -79,6 +80,18 @@ export default async function AuditPage() {
             )}
           </tbody>
         </table>
+        <StackedList className="@3xl:hidden" isEmpty={logs.length === 0} emptyMessage="No activity recorded yet.">
+          {logs.map((log) => (
+            <StackedItem
+              key={log.id}
+              title={ENTITY_LABELS[log.entityType] ?? log.entityType}
+              value={<span className="font-normal">{ACTION_LABELS[log.action] ?? log.action}</span>}
+              meta={[log.createdAt.toLocaleString(), <span key="source" className="capitalize">{log.source}</span>]}
+            >
+              <AuditChanges action={log.action} before={log.before} after={log.after} />
+            </StackedItem>
+          ))}
+        </StackedList>
       </section>
     </div>
   );

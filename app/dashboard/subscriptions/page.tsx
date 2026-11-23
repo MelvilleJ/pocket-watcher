@@ -1,4 +1,5 @@
 import { requireUser } from "@/lib/auth/dal";
+import { StackedItem, StackedList } from "@/components/stacked-list";
 import { listSubscriptions } from "@/lib/queries/entries";
 import { getExpenseCategories } from "@/lib/queries/lists";
 import { cancelSubscription, deleteSubscription } from "@/lib/actions/subscriptions";
@@ -48,8 +49,8 @@ export default async function SubscriptionsPage() {
         </div>
       </section>
 
-      <section className="overflow-x-auto rounded-xl border border-black/10 dark:border-white/10 bg-white dark:bg-zinc-950">
-        <table className="w-full text-sm">
+      <section className="@container rounded-xl border border-black/10 dark:border-white/10 bg-white dark:bg-zinc-950">
+        <table className="hidden w-full text-sm @3xl:table">
           <thead>
             <tr className="border-b border-black/10 dark:border-white/10 text-left text-[color:var(--muted)]">
               <th className="px-4 py-3 font-medium">Name</th>
@@ -105,6 +106,42 @@ export default async function SubscriptionsPage() {
             )}
           </tbody>
         </table>
+        <StackedList className="@3xl:hidden" isEmpty={rows.length === 0} emptyMessage="No subscriptions logged yet.">
+          {rows.map((row) => {
+            const isActive = row.status === "active";
+            return (
+              <StackedItem
+                key={row.id}
+                title={row.name}
+                value={
+                  <>
+                    {formatCurrency(calcMonthlyCost(row.billingCycle, Number(row.billedAmount)), user.currency)}
+                    <span className="text-xs font-normal text-[color:var(--muted)]">/mo</span>
+                  </>
+                }
+                meta={[
+                  <span key="status" className={isActive ? "text-[color:var(--status-good)]" : undefined}>
+                    {isActive ? "Active" : "Cancelled"}
+                  </span>,
+                  row.categoryName,
+                  `${formatCurrency(Number(row.billedAmount), user.currency)} ${BILLING_CYCLE_LABELS[row.billingCycle].toLowerCase()}`,
+                ]}
+                actions={
+                  <>
+                    {isActive && (
+                      <form action={cancelSubscription.bind(null, row.id)}>
+                        <button type="submit" className="text-xs font-medium text-zinc-600 dark:text-zinc-300 hover:underline">
+                          Cancel
+                        </button>
+                      </form>
+                    )}
+                    <DeleteButton action={deleteSubscription.bind(null, row.id)} />
+                  </>
+                }
+              />
+            );
+          })}
+        </StackedList>
       </section>
     </div>
   );

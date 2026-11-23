@@ -1,6 +1,7 @@
 import { requireUser } from "@/lib/auth/dal";
 import { lockBudget, unlockBudget } from "@/lib/actions/budgets";
 import { getBudgetView } from "@/lib/budgets";
+import { BudgetSection } from "@/components/budget-section";
 import { BudgetLineRow } from "@/components/forms/budget-line-row";
 import { SubscriptionBudgetLineRow } from "@/components/forms/subscription-budget-line-row";
 import SaveAllButton from "@/components/save-all-button";
@@ -117,186 +118,109 @@ export default async function BudgetPage({
         />
       </section>
 
-      <section className="overflow-x-auto rounded-xl border border-black/10 dark:border-white/10 bg-white dark:bg-zinc-950">
-        <div className="border-b border-black/10 dark:border-white/10 px-4 py-3">
-          <h2 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">Income</h2>
-        </div>
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-black/10 dark:border-white/10 text-left text-[color:var(--muted)]">
-              <th className="px-4 py-3 font-medium">Source</th>
-              <th className="px-4 py-3 font-medium text-right">Budgeted</th>
-              <th className="px-4 py-3 font-medium text-right">Actual</th>
-              <th className="px-4 py-3 font-medium text-right">Variance</th>
-            </tr>
-          </thead>
-          <tbody>
-            {incomeLines.map((l) => (
-              <BudgetLineRow
-                key={l.id}
-                lineId={l.id}
-                label={l.label}
-                plannedAmount={l.plannedAmount}
-                actual={l.actual}
-                currency={user.currency}
-                disabled={isLocked}
-                kind="income"
-              />
-            ))}
-          </tbody>
-        </table>
-      </section>
+      <BudgetSection title="Income" labelHeading="Source">
+        {incomeLines.map((l) => (
+          <BudgetLineRow
+            key={l.id}
+            lineId={l.id}
+            label={l.label}
+            plannedAmount={l.plannedAmount}
+            actual={l.actual}
+            currency={user.currency}
+            disabled={isLocked}
+            kind="income"
+          />
+        ))}
+      </BudgetSection>
 
-      <section className="overflow-x-auto rounded-xl border border-black/10 dark:border-white/10 bg-white dark:bg-zinc-950">
-        <div className="border-b border-black/10 dark:border-white/10 px-4 py-3">
-          <h2 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">
-            Expenses by category
-          </h2>
-          <p className="text-xs text-[color:var(--muted)]">Day-to-day spending only. Subscriptions, debt payments, and goal payments are tracked separately below.</p>
-        </div>
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-black/10 dark:border-white/10 text-left text-[color:var(--muted)]">
-              <th className="px-4 py-3 font-medium">Category</th>
-              <th className="px-4 py-3 font-medium text-right">Budgeted</th>
-              <th className="px-4 py-3 font-medium text-right">Actual</th>
-              <th className="px-4 py-3 font-medium text-right">Variance</th>
-            </tr>
-          </thead>
-          <tbody>
-            {expenseLines.map((l) => (
-              <BudgetLineRow
-                key={l.id}
-                lineId={l.id}
-                label={l.label}
-                plannedAmount={l.plannedAmount}
-                actual={l.actual}
-                currency={user.currency}
-                disabled={isLocked}
-                kind="expense"
-              />
-            ))}
-          </tbody>
-        </table>
-      </section>
+      <BudgetSection
+        title="Expenses by category"
+        description="Day-to-day spending only. Subscriptions, debt payments, and goal payments are tracked separately below."
+        labelHeading="Category"
+      >
+        {expenseLines.map((l) => (
+          <BudgetLineRow
+            key={l.id}
+            lineId={l.id}
+            label={l.label}
+            plannedAmount={l.plannedAmount}
+            actual={l.actual}
+            currency={user.currency}
+            disabled={isLocked}
+            kind="expense"
+          />
+        ))}
+      </BudgetSection>
 
-      <section className="overflow-x-auto rounded-xl border border-black/10 dark:border-white/10 bg-white dark:bg-zinc-950">
-        <div className="border-b border-black/10 dark:border-white/10 px-4 py-3">
-          <h2 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">Subscriptions</h2>
-          <p className="text-xs text-[color:var(--muted)]">
+      <BudgetSection
+        title="Subscriptions"
+        description={
+          <>
             Every active subscription is added here automatically at its known cost. Just say
             whether you&apos;re paying it this month. Cancelled ones drop off once you unlock or
             re-plan a budget.
-          </p>
-        </div>
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-black/10 dark:border-white/10 text-left text-[color:var(--muted)]">
-              <th className="px-4 py-3 font-medium">Subscription</th>
-              <th className="px-4 py-3 font-medium text-right">Paying?</th>
-              <th className="px-4 py-3 font-medium text-right">Actual</th>
-              <th className="px-4 py-3 font-medium text-right">Variance</th>
-            </tr>
-          </thead>
-          <tbody>
-            {subscriptionLines.map((l) => (
-              <SubscriptionBudgetLineRow
-                key={l.id}
-                lineId={l.id}
-                label={l.label}
-                monthlyCost={l.monthlyCost ?? l.plannedAmount}
-                included={l.plannedAmount > 0}
-                actual={l.actual}
-                currency={user.currency}
-                disabled={isLocked}
-              />
-            ))}
-            {subscriptionLines.length === 0 && (
-              <tr>
-                <td colSpan={4} className="px-4 py-6 text-center text-[color:var(--muted)]">
-                  No active subscriptions to budget for.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </section>
+          </>
+        }
+        labelHeading="Subscription"
+        plannedHeading="Paying?"
+        isEmpty={subscriptionLines.length === 0}
+        emptyMessage="No active subscriptions to budget for."
+      >
+        {subscriptionLines.map((l) => (
+          <SubscriptionBudgetLineRow
+            key={l.id}
+            lineId={l.id}
+            label={l.label}
+            monthlyCost={l.monthlyCost ?? l.plannedAmount}
+            included={l.plannedAmount > 0}
+            actual={l.actual}
+            currency={user.currency}
+            disabled={isLocked}
+          />
+        ))}
+      </BudgetSection>
 
-      <section className="overflow-x-auto rounded-xl border border-black/10 dark:border-white/10 bg-white dark:bg-zinc-950">
-        <div className="border-b border-black/10 dark:border-white/10 px-4 py-3">
-          <h2 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">Debt payments</h2>
-          <p className="text-xs text-[color:var(--muted)]">Every debt with an outstanding balance is added here automatically.</p>
-        </div>
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-black/10 dark:border-white/10 text-left text-[color:var(--muted)]">
-              <th className="px-4 py-3 font-medium">Debt</th>
-              <th className="px-4 py-3 font-medium text-right">Budgeted</th>
-              <th className="px-4 py-3 font-medium text-right">Actual</th>
-              <th className="px-4 py-3 font-medium text-right">Variance</th>
-            </tr>
-          </thead>
-          <tbody>
-            {debtLines.map((l) => (
-              <BudgetLineRow
-                key={l.id}
-                lineId={l.id}
-                label={l.label}
-                plannedAmount={l.plannedAmount}
-                actual={l.actual}
-                currency={user.currency}
-                disabled={isLocked}
-                kind="debt"
-              />
-            ))}
-            {debtLines.length === 0 && (
-              <tr>
-                <td colSpan={4} className="px-4 py-6 text-center text-[color:var(--muted)]">
-                  No outstanding debts to budget for.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </section>
+      <BudgetSection
+        title="Debt payments"
+        description="Every debt with an outstanding balance is added here automatically."
+        labelHeading="Debt"
+        isEmpty={debtLines.length === 0}
+        emptyMessage="No outstanding debts to budget for."
+      >
+        {debtLines.map((l) => (
+          <BudgetLineRow
+            key={l.id}
+            lineId={l.id}
+            label={l.label}
+            plannedAmount={l.plannedAmount}
+            actual={l.actual}
+            currency={user.currency}
+            disabled={isLocked}
+            kind="debt"
+          />
+        ))}
+      </BudgetSection>
 
-      <section className="overflow-x-auto rounded-xl border border-black/10 dark:border-white/10 bg-white dark:bg-zinc-950">
-        <div className="border-b border-black/10 dark:border-white/10 px-4 py-3">
-          <h2 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">Goal payments</h2>
-          <p className="text-xs text-[color:var(--muted)]">Every unfinished goal is added here automatically at its minimum monthly contribution.</p>
-        </div>
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-black/10 dark:border-white/10 text-left text-[color:var(--muted)]">
-              <th className="px-4 py-3 font-medium">Goal</th>
-              <th className="px-4 py-3 font-medium text-right">Budgeted</th>
-              <th className="px-4 py-3 font-medium text-right">Actual</th>
-              <th className="px-4 py-3 font-medium text-right">Variance</th>
-            </tr>
-          </thead>
-          <tbody>
-            {goalLines.map((line) => (
-              <BudgetLineRow
-                key={line.id}
-                lineId={line.id}
-                label={line.label}
-                plannedAmount={line.plannedAmount}
-                actual={line.actual}
-                currency={user.currency}
-                disabled={isLocked}
-                kind="goal"
-              />
-            ))}
-            {goalLines.length === 0 && (
-              <tr>
-                <td colSpan={4} className="px-4 py-6 text-center text-[color:var(--muted)]">
-                  No unfinished goals to budget for.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </section>
+      <BudgetSection
+        title="Goal payments"
+        description="Every unfinished goal is added here automatically at its minimum monthly contribution."
+        labelHeading="Goal"
+        isEmpty={goalLines.length === 0}
+        emptyMessage="No unfinished goals to budget for."
+      >
+        {goalLines.map((line) => (
+          <BudgetLineRow
+            key={line.id}
+            lineId={line.id}
+            label={line.label}
+            plannedAmount={line.plannedAmount}
+            actual={line.actual}
+            currency={user.currency}
+            disabled={isLocked}
+            kind="goal"
+          />
+        ))}
+      </BudgetSection>
     </div>
   );
 }

@@ -369,8 +369,7 @@ option {
   color: var(--muted);
 }
 
-.dashboard-sidebar nav::-webkit-scrollbar,
-.mobile-nav-scroll::-webkit-scrollbar {
+.dashboard-sidebar nav::-webkit-scrollbar {
   display: none;
 }
 
@@ -405,18 +404,74 @@ option {
   background: var(--primary-soft);
 }
 
-.nav-link-mobile {
-  min-height: 34px;
-  flex: 0 0 auto;
-  gap: 0.4rem;
-  border-radius: 0.6rem;
-  padding: 0.4rem 0.6rem;
-  font-size: 0.74rem;
+.mobile-tab-bar {
+  border-top: 1px solid var(--border);
+  background: color-mix(in srgb, var(--surface) 94%, transparent);
+  backdrop-filter: blur(14px);
+  padding-bottom: env(safe-area-inset-bottom);
 }
 
-.nav-link-mobile svg {
-  width: 0.95rem;
-  height: 0.95rem;
+.mobile-tab {
+  display: flex;
+  min-height: 56px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.2rem;
+  color: var(--muted);
+  font-size: 0.68rem;
+  font-weight: 600;
+  transition: color 0.15s ease;
+}
+
+.mobile-tab svg {
+  width: 1.3rem;
+  height: 1.3rem;
+}
+
+.mobile-tab.is-active {
+  color: var(--primary-deep);
+}
+
+.mobile-sheet-backdrop {
+  background: rgb(0 0 0 / 0.35);
+}
+
+.mobile-sheet {
+  bottom: calc(56px + env(safe-area-inset-bottom));
+  border-top: 1px solid var(--border);
+  border-radius: 1.1rem 1.1rem 0 0;
+  background: var(--surface);
+  box-shadow: 0 -12px 32px rgb(0 0 0 / 0.12);
+}
+
+.mobile-sheet-link {
+  display: flex;
+  min-height: 48px;
+  align-items: center;
+  gap: 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  padding: 0.6rem 0.8rem;
+  color: var(--foreground);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.mobile-sheet-link svg {
+  width: 1.1rem;
+  height: 1.1rem;
+  color: var(--muted);
+}
+
+.mobile-sheet-link.is-active {
+  border-color: transparent;
+  background: var(--primary-soft);
+  color: var(--primary-deep);
+}
+
+.mobile-sheet-link.is-active svg {
+  color: currentColor;
 }
 
 .sidebar-profile {
@@ -978,10 +1033,6 @@ option {
 /* Responsive & motion                                                */
 /* ------------------------------------------------------------------ */
 @media (max-width: 639px) {
-  .dashboard-content section.overflow-x-auto table {
-    min-width: 620px;
-  }
-
   .dashboard-content section {
     border-radius: 0.85rem;
   }

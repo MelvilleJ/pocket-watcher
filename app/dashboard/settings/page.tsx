@@ -1,4 +1,5 @@
 import { requireUser } from "@/lib/auth/dal";
+import { StackedItem, StackedList } from "@/components/stacked-list";
 import { listSessions } from "@/lib/queries/audit";
 import { SettingsForm } from "@/components/forms/settings-form";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -52,7 +53,7 @@ export default async function SettingsPage() {
         </div>
       </section>
 
-      <section className="overflow-x-auto rounded-xl border border-black/10 dark:border-white/10 bg-white dark:bg-zinc-950">
+      <section className="@container rounded-xl border border-black/10 dark:border-white/10 bg-white dark:bg-zinc-950">
         <div className="border-b border-black/10 dark:border-white/10 px-4 py-3">
           <h2 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">
             Active sessions
@@ -61,7 +62,7 @@ export default async function SettingsPage() {
             Web and mobile devices signed in to your account.
           </p>
         </div>
-        <table className="w-full text-sm">
+        <table className="hidden w-full text-sm @2xl:table">
           <thead>
             <tr className="border-b border-black/10 dark:border-white/10 text-left text-[color:var(--muted)]">
               <th className="px-4 py-3 font-medium">Device</th>
@@ -100,13 +101,44 @@ export default async function SettingsPage() {
             })}
           </tbody>
         </table>
+        <StackedList className="@2xl:hidden">
+          {sessions.map((s) => {
+            const isRevoked = Boolean(s.revokedAt) || s.expiresAt < new Date();
+            return (
+              <StackedItem
+                key={s.id}
+                title={s.deviceName}
+                value={
+                  isRevoked ? (
+                    <span className="font-normal text-[color:var(--muted)]">Signed out</span>
+                  ) : (
+                    <span className="font-normal text-[color:var(--status-good)]">Active</span>
+                  )
+                }
+                meta={[
+                  <span key="platform" className="capitalize">{s.platform}</span>,
+                  `Last used ${s.lastUsedAt.toLocaleString()}`,
+                ]}
+                actions={
+                  !isRevoked && (
+                    <form action={revokeSession.bind(null, s.id)}>
+                      <button type="submit" className="text-xs font-medium text-red-600 hover:underline">
+                        Sign out
+                      </button>
+                    </form>
+                  )
+                }
+              />
+            );
+          })}
+        </StackedList>
       </section>
 
       <section className="rounded-xl border border-red-300/60 dark:border-red-500/30 bg-white p-5 dark:bg-zinc-950">
         <h2 className="mb-1 text-sm font-semibold text-red-700 dark:text-red-400">Danger zone</h2>
         <p className="mb-4 text-xs text-[color:var(--muted)]">
-          Deleting your account permanently erases your account and all data — transactions, budgets, goals, and
-          sessions — and can&rsquo;t be undone. The server keeps a record of the deletion, including a summary of what
+          Deleting your account permanently erases your account and all data (transactions, budgets, goals, and
+          sessions) and can&rsquo;t be undone. The server keeps a record of the deletion, including a summary of what
           was removed. If you want to keep anything, export a backup first, then re-import it after signing up again.
         </p>
         <DeleteAccountButton email={user.email} />

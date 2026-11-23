@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { BudgetFigure, budgetRowGrid } from "@/components/budget-section";
 
 export function BudgetLineRow({
   lineId,
@@ -58,49 +59,47 @@ export function BudgetLineRow({
     return () => window.removeEventListener("budget-save-now", handler as EventListener);
   }, [value]);
 
+  const varianceTone =
+    variance === 0
+      ? "text-[color:var(--muted)]"
+      : isGood
+        ? "text-[color:var(--status-good)]"
+        : "text-[color:var(--status-critical)]";
+
   return (
-    <tr className="border-b border-black/5 dark:border-white/5">
-      <td className="px-4 py-2">{label}</td>
-      <td className="px-4 py-2 text-right">
+    <li className={`${budgetRowGrid} border-b border-black/5 py-2.5 last:border-b-0 dark:border-white/5`}>
+      <span className="min-w-0 break-words">{label}</span>
+      <span className="text-right">
         {disabled ? (
           <span className="tabular-nums">
             {currency}
             {value.toFixed(2)}
           </span>
         ) : (
-          <div className="flex items-center justify-end gap-2">
-            <input
-              type="number"
-              step="0.01"
-              name="plannedAmount"
-              value={value}
-              onChange={(e) => {
-                const next = Number(e.target.value);
-                setValue(next);
-                scheduleSave(next);
-              }}
-              className="w-28 rounded-md border border-black/15 dark:border-white/15 bg-transparent px-2 py-1 text-right text-sm tabular-nums"
-            />
-          </div>
+          <input
+            type="number"
+            step="0.01"
+            name="plannedAmount"
+            aria-label={`Budgeted for ${label}`}
+            value={value}
+            onChange={(e) => {
+              const next = Number(e.target.value);
+              setValue(next);
+              scheduleSave(next);
+            }}
+            className="w-28 rounded-md border border-black/15 dark:border-white/15 bg-transparent px-2 py-1 text-right text-sm tabular-nums"
+          />
         )}
-      </td>
-      <td className="px-4 py-2 text-right tabular-nums">
+      </span>
+      <BudgetFigure label="Actual" className="@lg:text-right">
         {currency}
         {actual.toFixed(2)}
-      </td>
-      <td
-        className={`px-4 py-2 text-right tabular-nums ${
-          variance === 0
-            ? "text-[color:var(--muted)]"
-            : isGood
-              ? "text-[color:var(--status-good)]"
-              : "text-[color:var(--status-critical)]"
-        }`}
-      >
+      </BudgetFigure>
+      <BudgetFigure label="Variance" className={`text-right ${varianceTone}`}>
         {variance >= 0 ? "+" : ""}
         {currency}
         {variance.toFixed(2)}
-      </td>
-    </tr>
+      </BudgetFigure>
+    </li>
   );
 }

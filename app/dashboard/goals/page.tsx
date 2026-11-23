@@ -1,4 +1,5 @@
 import { requireUser } from "@/lib/auth/dal";
+import { StackedItem, StackedList } from "@/components/stacked-list";
 import { listGoalsForUser } from "@/lib/queries/goals";
 import { GoalsRoadmapPlanner } from "@/components/goals-roadmap-planner";
 import { GoalForm } from "@/components/forms/goal-form";
@@ -68,8 +69,8 @@ export default async function GoalsPage() {
         </div>
       </section>
 
-      <section className="overflow-x-auto rounded-xl border border-black/10 dark:border-white/10 bg-white dark:bg-zinc-950">
-        <table className="w-full text-sm">
+      <section className="@container rounded-xl border border-black/10 dark:border-white/10 bg-white dark:bg-zinc-950">
+        <table className="hidden w-full text-sm @lg:table">
           <thead>
             <tr className="border-b border-black/10 dark:border-white/10 text-left text-[color:var(--muted)]">
               <th className="px-4 py-3 font-medium">Goal</th>
@@ -97,6 +98,22 @@ export default async function GoalsPage() {
             )}
           </tbody>
         </table>
+        <StackedList className="@lg:hidden" isEmpty={goals.length === 0} emptyMessage="No goals logged yet.">
+          {goals.map((goal) => {
+            const progress = goal.targetAmount === 0 ? 0 : goal.currentSaved / goal.targetAmount;
+            return (
+              <StackedItem
+                key={goal.id}
+                title={goal.name}
+                value={`${(progress * 100).toFixed(0)}%`}
+                meta={[
+                  `${formatCurrency(goal.currentSaved, user.currency)} saved of ${formatCurrency(goal.targetAmount, user.currency)}`,
+                ]}
+                progress={progress}
+              />
+            );
+          })}
+        </StackedList>
       </section>
 
       <section className="rounded-xl border border-black/10 dark:border-white/10 bg-white dark:bg-zinc-950 p-5">
@@ -104,8 +121,8 @@ export default async function GoalsPage() {
         <GoalContributionForm goals={goals.map((goal) => ({ id: goal.id, name: goal.name }))} />
       </section>
 
-      <section className="overflow-x-auto rounded-xl border border-black/10 dark:border-white/10 bg-white dark:bg-zinc-950">
-        <table className="w-full text-sm">
+      <section className="@container rounded-xl border border-black/10 dark:border-white/10 bg-white dark:bg-zinc-950">
+        <table className="hidden w-full text-sm @2xl:table">
           <thead>
             <tr className="border-b border-black/10 dark:border-white/10 text-left text-[color:var(--muted)]">
               <th className="px-4 py-3 font-medium">Date</th>
@@ -134,6 +151,17 @@ export default async function GoalsPage() {
             )}
           </tbody>
         </table>
+        <StackedList className="@2xl:hidden" isEmpty={payments.length === 0} emptyMessage="No payments recorded yet.">
+          {payments.map((payment) => (
+            <StackedItem
+              key={payment.id}
+              title={goalNameById.get(payment.goalId) ?? "-"}
+              value={formatCurrency(Number(payment.amount), user.currency)}
+              meta={[payment.date.toISOString().slice(0, 10), payment.description]}
+              actions={<DeleteButton action={deleteGoalPayment.bind(null, payment.id)} />}
+            />
+          ))}
+        </StackedList>
       </section>
 
       <GoalsRoadmapPlanner goals={goals} currency={user.currency} minTotalContribution={minTotal} />

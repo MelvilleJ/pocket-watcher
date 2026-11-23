@@ -88,7 +88,7 @@ export function ImportDataButton() {
         <div className="flex flex-wrap items-center gap-3 rounded-md border border-black/10 dark:border-white/10 bg-[color:var(--surface-soft)] px-3 py-2">
           <span className="min-w-0 truncate text-sm font-medium">{file.name}</span>
           <span className="text-xs text-[color:var(--muted)]">
-            {(file.size / 1024).toFixed(1)} KB — replaces all current data
+            {(file.size / 1024).toFixed(1)} KB: replaces all current data
           </span>
           <span className="ml-auto flex gap-2">
             <button type="button" className={dangerButton} onClick={doImport} disabled={busy}>

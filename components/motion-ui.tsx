@@ -6,7 +6,7 @@ import type { ReactNode } from "react";
 
 export function PageTransition({ children }: { children: ReactNode }) {
   return (
-    <main className="dashboard-content mx-auto min-h-screen w-full max-w-[1480px] px-4 pb-12 pt-28 sm:px-6 lg:pl-[20rem] lg:pr-8 lg:pt-10">
+    <main className="dashboard-content mx-auto min-h-screen w-full max-w-[1480px] px-4 pb-[calc(5.5rem+env(safe-area-inset-bottom))] pt-20 sm:px-6 lg:pb-12 lg:pl-[20rem] lg:pr-8 lg:pt-10">
       {children}
     </main>
   );
