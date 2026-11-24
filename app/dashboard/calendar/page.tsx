@@ -1,7 +1,6 @@
 import { requireUser } from "@/lib/auth/dal";
 import { getCalendarMonths, getEarliestActivityYear } from "@/lib/queries/calendar";
 import { MonthCalendarViewer } from "@/components/month-calendar-viewer";
-import { YearPicker } from "@/components/year-picker";
 import { PageHero } from "@/components/page-hero";
 
 export default async function CalendarPage({
@@ -24,9 +23,8 @@ export default async function CalendarPage({
       <PageHero
         title="Calendar"
         description="Review daily cash activity, then compare the months that matter."
-        actions={<YearPicker year={year} years={years} />}
       />
-      <MonthCalendarViewer key={year} year={year} currency={user.currency} months={months} />
+      <MonthCalendarViewer key={year} year={year} years={years} currency={user.currency} months={months} />
     </div>
   );
 }
