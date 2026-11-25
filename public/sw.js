@@ -44,6 +44,16 @@ async function runAction(notification, actionName) {
       body: JSON.stringify({ token: action.token }),
     });
     const result = await response.json();
+    if (typeof result.outcome === "string" && result.outcome.startsWith("test-")) {
+      const pressed = result.outcome === "test-add" ? "Add" : "Dismiss";
+      return self.registration.showNotification(`${pressed} works`, {
+        body: "This was a test, so nothing was changed.",
+        tag: "test",
+        icon: "/icon-192.png",
+        badge: "/badge-96.png",
+        data: { url: notification.data.url, actions: [] },
+      });
+    }
     // Anything other than a clean add/dismiss (e.g. a category is now missing) needs a person to look.
     if (!result.ok && result.outcome !== "already-handled") return openApp(notification.data.url);
   } catch {

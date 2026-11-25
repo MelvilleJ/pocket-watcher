@@ -9,6 +9,7 @@ import { pushSubscriptions } from "@/lib/db/schema";
 import { requireUser } from "@/lib/auth/dal";
 import { rememberAppOrigin } from "@/lib/push/keys";
 import { sendPushToUser } from "@/lib/push/send";
+import { signPushAction, TEST_PENDING_ID } from "@/lib/push/tokens";
 
 const SubscriptionSchema = z.object({
   endpoint: z.url().max(1000),
@@ -55,10 +56,14 @@ export async function removePushDevice(id: string) {
 export async function sendTestNotification() {
   const user = await requireUser();
   const sent = await sendPushToUser(user.id, {
-    title: "Notifications are on",
-    body: "You'll get one when a bank email needs a look.",
+    title: `Spotify  −${user.currency}64.26`,
+    body: "Subscriptions (AI suggestion) · Test notification",
     tag: "test",
     url: "/dashboard/transactions",
+    actions: [
+      { action: "add", title: "Add", token: signPushAction(user.id, TEST_PENDING_ID, "add") },
+      { action: "dismiss", title: "Dismiss", token: signPushAction(user.id, TEST_PENDING_ID, "dismiss") },
+    ],
   });
   if (sent.total === 0) return { error: "No devices have notifications turned on." };
   if (sent.delivered === 0) return { error: `Couldn't send: ${sent.errors[0] ?? "the push service refused it"}.` };

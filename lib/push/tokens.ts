@@ -3,6 +3,9 @@ import { createHmac, hkdfSync, timingSafeEqual } from "node:crypto";
 
 export type PushAction = "add" | "dismiss";
 
+// Stands in for a review item in test notifications, so their buttons can be pressed without touching data.
+export const TEST_PENDING_ID = "test";
+
 const TTL_MS = 14 * 24 * 60 * 60 * 1000;
 
 function key() {
