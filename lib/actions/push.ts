@@ -27,9 +27,9 @@ export async function savePushSubscription(input: unknown) {
   if (!parsed.success) return { error: "This browser returned an invalid subscription." };
   const requestHeaders = await headers();
   const deviceName = deviceFrom(requestHeaders.get("user-agent") ?? "");
-  const host = requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host");
-  const proto = requestHeaders.get("x-forwarded-proto") ?? "https";
-  if (host && !host.startsWith("localhost")) await rememberAppOrigin(`${proto}://${host}`);
+  // The browser's Origin header is reliable behind reverse proxies, which often drop the forwarded protocol.
+  const origin = requestHeaders.get("origin");
+  if (origin?.startsWith("https://")) await rememberAppOrigin(origin);
 
   const values = { userId: user.id, p256dh: parsed.data.keys.p256dh, auth: parsed.data.keys.auth, deviceName };
   await db
@@ -60,5 +60,10 @@ export async function sendTestNotification() {
     tag: "test",
     url: "/dashboard/transactions",
   });
-  return sent > 0 ? { ok: `Sent to ${sent} device${sent === 1 ? "" : "s"}.` } : { error: "No devices have notifications turned on." };
+  if (sent.total === 0) return { error: "No devices have notifications turned on." };
+  if (sent.delivered === 0) return { error: `Couldn't send: ${sent.errors[0] ?? "the push service refused it"}.` };
+  const failed = sent.total - sent.delivered;
+  return {
+    ok: `Sent to ${sent.delivered} device${sent.delivered === 1 ? "" : "s"}.${failed ? ` ${failed} failed: ${sent.errors[0]}.` : ""}`,
+  };
 }

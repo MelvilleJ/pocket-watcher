@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { startTransition, useActionState, useEffect, useState } from "react";
 import { listLocalModels, removeAiSettings, saveAiSettings, type LocalModel } from "@/lib/actions/email-import";
 import { AI_PROVIDERS, LOCAL_BASE_URLS, type AiProvider } from "@/lib/ai/providers";
 import {
@@ -81,7 +81,16 @@ export function AiSettingsForm({ current, encryptionReady }: { current: Current;
           .
         </p>
       )}
-      <form action={action} className="grid gap-4">
+      <form
+        // Submitting through onSubmit skips React's automatic form reset, which left the provider select showing
+        // its first option while the rest of the form stayed on the chosen provider.
+        onSubmit={(e) => {
+          e.preventDefault();
+          const data = new FormData(e.currentTarget);
+          startTransition(() => action(data));
+        }}
+        className="grid gap-4"
+      >
         <label className="flex flex-col gap-1">
           <span className={labelClass}>Provider</span>
           <select

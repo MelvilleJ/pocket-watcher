@@ -16,12 +16,14 @@ export type PushPayload = {
 
 export async function sendPushToUser(userId: string, payload: PushPayload) {
   const subscriptions = await db.select().from(pushSubscriptions).where(eq(pushSubscriptions.userId, userId));
-  if (subscriptions.length === 0) return 0;
+  const result = { total: subscriptions.length, delivered: 0, errors: [] as string[] };
+  if (subscriptions.length === 0) return result;
   const { publicKey, privateKey } = await getVapidKeys();
-  const subject = (await getAppOrigin()) ?? "mailto:notifications@pocket-watcher.invalid";
+  // Push services only accept an https: or mailto: contact; anything else makes every send fail.
+  const origin = await getAppOrigin();
+  const subject = origin?.startsWith("https://") ? origin : "mailto:notifications@pocket-watcher.invalid";
   const body = JSON.stringify(payload);
 
-  let sent = 0;
   for (const sub of subscriptions) {
     try {
       await webpush.sendNotification(
@@ -29,14 +31,17 @@ export async function sendPushToUser(userId: string, payload: PushPayload) {
         body,
         { vapidDetails: { subject, publicKey, privateKey }, TTL: 24 * 60 * 60, urgency: "normal" }
       );
-      sent++;
+      result.delivered++;
     } catch (error) {
       // 404/410 mean the browser dropped this subscription (uninstalled, permission revoked); forget it.
-      const status = (error as { statusCode?: number }).statusCode;
-      if (status === 404 || status === 410) await db.delete(pushSubscriptions).where(eq(pushSubscriptions.id, sub.id));
+      const { statusCode, body: responseBody, message } = error as { statusCode?: number; body?: string; message?: string };
+      if (statusCode === 404 || statusCode === 410) await db.delete(pushSubscriptions).where(eq(pushSubscriptions.id, sub.id));
+      const detail = `${sub.deviceName ?? "Device"}: ${statusCode ? `${statusCode} ` : ""}${(responseBody || message || "unknown error").trim().slice(0, 160)}`;
+      result.errors.push(detail);
+      console.error("Push notification failed", detail);
     }
   }
-  return sent;
+  return result;
 }
 
 export async function notifyPendingTransaction(userId: string, pendingId: string) {
