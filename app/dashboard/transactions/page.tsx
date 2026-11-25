@@ -9,6 +9,10 @@ import {
   type TransactionType,
 } from "@/lib/queries/depos";
 import { getExpenseCategories, getIncomeSources } from "@/lib/queries/lists";
+import { listPendingTransactions } from "@/lib/queries/email-import";
+import { toDateKey } from "@/lib/email/template";
+import { ReviewInbox } from "@/components/email-import/review-inbox";
+import { countEmailsWaitingForAi } from "@/lib/email/ai-catchup";
 import { deleteTransaction, setExpensePaid } from "@/lib/actions/transactions";
 import { TransactionForm } from "@/components/forms/transaction-form";
 import { DepoList } from "@/components/depo-list";
@@ -59,16 +63,18 @@ function filterHref(params: { depo?: string; type?: string }) {
 export default async function TransactionsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ depo?: string; type?: string }>;
+  searchParams: Promise<{ depo?: string; type?: string; review?: string }>;
 }) {
   const user = await requireUser();
   const params = await searchParams;
 
-  const [depos, lookup, categories, sources] = await Promise.all([
+  const [depos, lookup, categories, sources, pendingImports, waitingForAi] = await Promise.all([
     listDeposWithBalances(user.id),
     getDepoNameLookup(user.id),
     getExpenseCategories(user.id),
     getIncomeSources(user.id),
+    listPendingTransactions(user.id),
+    countEmailsWaitingForAi(user.id),
   ]);
 
   const activeDepo = depos.find((d) => d.id === params.depo);
@@ -99,7 +105,29 @@ export default async function TransactionsPage({
     <div className="flex flex-col gap-5">
       <PageHero
         title="Transactions"
-        description="Log money in, money out, and moves between your depos, all in one place."
+        description="Money in, out and between depos."
+      />
+
+      {waitingForAi > 0 && (
+        <Link
+          href="/dashboard/settings/ai"
+          className="flex items-center justify-between gap-3 rounded-xl border border-amber-300/60 bg-amber-50 px-4 py-3 text-sm text-amber-900 hover:border-amber-400 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200"
+        >
+          <span>
+            <span className="font-medium">AI offline.</span> {waitingForAi} email{waitingForAi === 1 ? "" : "s"} waiting, read
+            automatically once it&rsquo;s back.
+          </span>
+          <span aria-hidden="true">&rarr;</span>
+        </Link>
+      )}
+
+      <ReviewInbox
+        items={pendingImports.map((item) => ({ ...item, date: toDateKey(item.date) }))}
+        depos={depos.map((d) => ({ id: d.id, name: d.name }))}
+        categories={categories.map((c) => ({ id: c.id, name: c.name }))}
+        sources={sources.map((src) => ({ id: src.id, name: src.name }))}
+        currency={user.currency}
+        initialEditing={params.review}
       />
 
       <FocalPanel
@@ -162,7 +190,7 @@ export default async function TransactionsPage({
 
           {groups.length === 0 ? (
             <p className="px-5 py-10 text-center text-sm text-[color:var(--muted)]">
-              Nothing logged {activeDepo ? `for ${activeDepo.name} ` : ""}yet. Use the form above to add your first transaction.
+              Nothing logged {activeDepo ? `for ${activeDepo.name} ` : ""}yet.
             </p>
           ) : (
             <ol className="flex flex-col">

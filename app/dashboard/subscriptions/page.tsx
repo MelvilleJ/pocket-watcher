@@ -30,7 +30,7 @@ export default async function SubscriptionsPage() {
     <div className="flex flex-col gap-6">
       <PageHero
         title="Subscriptions"
-        description="One row per subscription. Billed in every month it was active."
+        description="Recurring charges."
       />
 
       <FocalPanel

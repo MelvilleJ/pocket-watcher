@@ -36,7 +36,7 @@ export default async function AuditPage() {
     <div className="flex flex-col gap-6">
       <PageHero
         title="History & audit log"
-        description="Every change made to your data, from either the web dashboard or the mobile app."
+        description="Every change, from web or mobile."
         stats={[{ label: "Recorded changes", value: total.toLocaleString() }]}
       />
 

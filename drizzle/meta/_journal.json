@@ -78,6 +78,62 @@
       "when": 1795463941372,
       "tag": "0010_dark_typhoid_mary",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1795558815947,
+      "tag": "0011_add_email_import",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1795563671073,
+      "tag": "0012_add_local_ai_provider",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1795564645167,
+      "tag": "0013_mailbox_connections",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1795564645711,
+      "tag": "0014_drop_email_forwarding",
+      "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1795565860255,
+      "tag": "0015_cards_and_declines",
+      "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1795566602788,
+      "tag": "0016_merchant_memory",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1795568134138,
+      "tag": "0017_ai_outage_recovery",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1795568512138,
+      "tag": "0018_push_notifications",
+      "breakpoints": true
     }
   ]
 }

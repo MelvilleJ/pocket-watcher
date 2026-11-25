@@ -45,7 +45,7 @@ export default async function GoalsPage() {
     <div className="flex flex-col gap-6">
       <PageHero
         title="Goals Roadmap"
-        description="Plan how your monthly savings allocation completes your goals."
+        description="How your savings reach your goals."
       />
 
       <FocalPanel

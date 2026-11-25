@@ -2,6 +2,7 @@ import { requireUser } from "@/lib/auth/dal";
 import { logout } from "@/lib/actions/auth";
 import { DashboardNav } from "@/components/dashboard-nav";
 import { MotionButton, PageTransition } from "@/components/motion-ui";
+import { ServiceWorkerRegistrar } from "@/components/service-worker";
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const user = await requireUser();
@@ -20,6 +21,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
           </form>
         }
       />
+      <ServiceWorkerRegistrar />
       <PageTransition>{children}</PageTransition>
     </div>
   );

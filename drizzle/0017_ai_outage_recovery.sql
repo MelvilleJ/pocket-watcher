@@ -1,0 +1,2 @@
+ALTER TABLE "inbound_emails" ADD COLUMN "ai_retry_until" timestamp with time zone;--> statement-breakpoint
+ALTER TABLE "pending_transactions" ADD COLUMN "ai_category_tried" boolean DEFAULT false NOT NULL;

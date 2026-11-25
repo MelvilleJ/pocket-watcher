@@ -19,12 +19,12 @@ export async function updateSettings(
 
   await updateUserSettings(user.id, parsed.data);
 
-  revalidatePath("/dashboard/settings");
+  revalidatePath("/dashboard/settings", "layout");
   revalidatePath("/dashboard");
 }
 
 export async function revokeSession(sessionId: string) {
   const user = await requireUser();
   await revokeUserSession(user.id, sessionId);
-  revalidatePath("/dashboard/settings");
+  revalidatePath("/dashboard/settings", "layout");
 }

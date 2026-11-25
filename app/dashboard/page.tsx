@@ -77,7 +77,7 @@ export default async function SummaryPage() {
     <div className="flex flex-col gap-6">
       <PageHero
         title={`${MONTH_NAMES[monthIndex]} ${year}`}
-        description="Calculated from your transactions, subscriptions and debts. Set aside and fun money split this month's net at your savings rate."
+        description="This month's money at a glance."
       />
 
       <FocalPanel
@@ -221,7 +221,7 @@ export default async function SummaryPage() {
         ) : (
           <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-5">
             <p className="text-sm text-[color:var(--muted)]">
-              Add depos like cash in hand, your bank, or a credit union to see where your money sits.
+              Add a depo to see where your money sits.
             </p>
             <Link href="/dashboard/transactions" className="text-sm font-medium underline">
               Set up depos

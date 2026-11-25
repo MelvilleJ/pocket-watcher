@@ -54,8 +54,8 @@ export default async function BudgetPage({
         title={`Budget: ${MONTH_NAMES[monthIndex]} ${year}`}
         description={
           isLocked
-            ? "This budget is locked. Actuals are tracked against the amounts you committed to."
-            : "Plan your budget before the month starts, then lock it in."
+            ? "Locked. Tracking against your plan."
+            : "Plan the month, then lock it in."
         }
         actions={
           <>
@@ -135,7 +135,7 @@ export default async function BudgetPage({
 
       <BudgetSection
         title="Expenses by category"
-        description="Day-to-day spending only. Subscriptions, debt payments, and goal payments are tracked separately below."
+        description="Day-to-day spending."
         labelHeading="Category"
       >
         {expenseLines.map((l) => (
@@ -155,11 +155,7 @@ export default async function BudgetPage({
       <BudgetSection
         title="Subscriptions"
         description={
-          <>
-            Every active subscription is added here automatically at its known cost. Just say
-            whether you&apos;re paying it this month. Cancelled ones drop off once you unlock or
-            re-plan a budget.
-          </>
+          <>Added automatically. Mark the ones you&apos;re paying this month.</>
         }
         labelHeading="Subscription"
         plannedHeading="Paying?"
@@ -182,7 +178,7 @@ export default async function BudgetPage({
 
       <BudgetSection
         title="Debt payments"
-        description="Every debt with an outstanding balance is added here automatically."
+        description="Added automatically."
         labelHeading="Debt"
         isEmpty={debtLines.length === 0}
         emptyMessage="No outstanding debts to budget for."
@@ -203,7 +199,7 @@ export default async function BudgetPage({
 
       <BudgetSection
         title="Goal payments"
-        description="Every unfinished goal is added here automatically at its minimum monthly contribution."
+        description="Added automatically at their minimum."
         labelHeading="Goal"
         isEmpty={goalLines.length === 0}
         emptyMessage="No unfinished goals to budget for."

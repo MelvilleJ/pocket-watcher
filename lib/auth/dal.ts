@@ -8,7 +8,7 @@ import { getWebSessionPayload } from "@/lib/auth/session";
 
 export const verifySession = cache(async () => {
   const session = await getWebSessionPayload();
-  if (!session) redirect("/login");
+  if (!session) redirect("/api/auth/clear-session");
   return session;
 });
 
@@ -33,6 +33,6 @@ export const getCurrentUser = cache(async () => {
 
 export const requireUser = cache(async () => {
   const user = await getCurrentUser();
-  if (!user) redirect("/login");
+  if (!user) redirect("/api/auth/clear-session");
   return user;
 });

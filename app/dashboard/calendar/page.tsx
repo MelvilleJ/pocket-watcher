@@ -22,7 +22,7 @@ export default async function CalendarPage({
     <div className="flex flex-col gap-6">
       <PageHero
         title="Calendar"
-        description="Review daily cash activity, then compare the months that matter."
+        description="Daily cash activity by month."
       />
       <MonthCalendarViewer key={year} year={year} years={years} currency={user.currency} months={months} />
     </div>

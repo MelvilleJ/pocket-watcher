@@ -3,5 +3,5 @@ import { getCurrentUser } from "@/lib/auth/dal";
 
 export default async function Home() {
   const user = await getCurrentUser();
-  redirect(user ? "/dashboard" : "/login");
+  redirect(user ? "/dashboard" : "/api/auth/clear-session");
 }

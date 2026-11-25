@@ -1,7 +1,9 @@
 "use client";
 
-import { startTransition, useActionState, useState } from "react";
+import { startTransition, useActionState, useEffect, useState } from "react";
 import { createTransaction } from "@/lib/actions/transactions";
+import { suggestCategoryFor } from "@/lib/actions/categorize";
+import type { Suggestion } from "@/lib/categorize";
 import { DepoBadge } from "@/components/depo-icon";
 import { CreatableSelect } from "@/components/forms/creatable-select";
 
@@ -75,6 +77,9 @@ export function TransactionForm({
   const [entryKey, setEntryKey] = useState(0);
   const [amount, setAmount] = useState("");
   const [fee, setFee] = useState("");
+  const [description, setDescription] = useState("");
+  const [suggestion, setSuggestion] = useState<{ query: string; result: Suggestion | null } | null>(null);
+  const [appliedCategory, setAppliedCategory] = useState<string | null>(null);
   const [state, action, pending] = useActionState(
     async (prev: Awaited<ReturnType<typeof createTransaction>>, formData: FormData) => {
       const result = await createTransaction(prev, formData);
@@ -82,6 +87,9 @@ export function TransactionForm({
         setEntryKey((k) => k + 1);
         setAmount("");
         setFee("");
+        setDescription("");
+        setAppliedCategory(null);
+        setSuggestion(null);
       }
       return result;
     },
@@ -92,6 +100,25 @@ export function TransactionForm({
   const [appliedMonth, setAppliedMonth] = useState(() => appliedMonthFor(todayLocal()));
   const [depoId, setDepoId] = useState<string | null>(defaultDepoId ?? null);
   const [toDepoId, setToDepoId] = useState<string | null>(null);
+
+  const suggestionQuery = mode === "transfer" ? "" : `${mode}:${description.trim()}`;
+
+  useEffect(() => {
+    if (mode === "transfer" || description.trim().length < 3) return;
+    let cancelled = false;
+    const timer = setTimeout(async () => {
+      const result = await suggestCategoryFor(mode, description.trim());
+      if (!cancelled) setSuggestion({ query: `${mode}:${description.trim()}`, result });
+    }, 700);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [mode, description]);
+
+  const activeSuggestion = suggestion?.query === suggestionQuery ? suggestion.result : null;
+  const withApplied = (names: string[]) =>
+    appliedCategory && !names.includes(appliedCategory) ? [appliedCategory, ...names] : names;
 
   const canTransfer = depos.length >= 2;
   const isDepo = (id: string | null) => depos.some((d) => d.id === id);
@@ -182,9 +209,10 @@ export function TransactionForm({
                 <label className="txn-field">
                   <span className="txn-label">Source</span>
                   <CreatableSelect
-                    key="sourceName"
+                    key={`sourceName-${appliedCategory ?? ""}`}
                     name="sourceName"
-                    options={sources.map((s) => ({ value: s.name }))}
+                    defaultValue={appliedCategory ?? ""}
+                    options={withApplied(sources.map((s) => s.name)).map((value) => ({ value }))}
                     placeholder="Choose source"
                     newPlaceholder="New source"
                     required
@@ -194,9 +222,10 @@ export function TransactionForm({
                 <label className="txn-field">
                   <span className="txn-label">Category</span>
                   <CreatableSelect
-                    key="categoryName"
+                    key={`categoryName-${appliedCategory ?? ""}`}
                     name="categoryName"
-                    options={categories.map((c) => ({ value: c.name }))}
+                    defaultValue={appliedCategory ?? ""}
+                    options={withApplied(categories.map((c) => c.name)).map((value) => ({ value }))}
                     placeholder="Choose category"
                     newPlaceholder="New category"
                     required
@@ -235,7 +264,28 @@ export function TransactionForm({
 
           <label className="txn-field txn-description">
             <span className="txn-label">Description</span>
-            <input key={entryKey} name="description" placeholder="Optional note" />
+            <input
+              key={entryKey}
+              name="description"
+              placeholder="Optional note"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+            />
+            {activeSuggestion?.categoryName && activeSuggestion.categoryName !== appliedCategory && (
+              <button
+                type="button"
+                onClick={() => setAppliedCategory(activeSuggestion.categoryName)}
+                className="mt-1 w-fit rounded-full border border-black/10 px-3 py-1 text-xs hover:border-black/30 dark:border-white/15 dark:hover:border-white/35"
+              >
+                Suggested {mode === "income" ? "source" : "category"}:{" "}
+                <span className="font-medium">{activeSuggestion.categoryName}</span>
+                {activeSuggestion.isNewCategory && " (new)"}
+                <span className="text-[color:var(--muted)]">
+                  {" "}
+                  · {activeSuggestion.source === "ai" ? "AI" : "you used it before"} · tap to use
+                </span>
+              </button>
+            )}
           </label>
 
           {mode === "expense" && (

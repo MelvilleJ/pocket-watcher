@@ -46,7 +46,7 @@ export default async function DebtsPage() {
     <div className="flex flex-col gap-6">
       <PageHero
         title="Debts Roadmap"
-        description="Track what you owe and compare strategies for paying it off."
+        description="What you owe and how to pay it off."
       />
 
       <FocalPanel

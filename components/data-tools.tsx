@@ -145,8 +145,7 @@ export function DeleteAccountButton({ email }: { email: string }) {
   return (
     <div className="flex max-w-lg flex-col gap-3">
       <p className="text-sm text-[color:var(--muted)]">
-        This permanently deletes your account, all financial data, sessions, and history. Export a backup first if you
-        want to keep anything. The deletion itself is recorded in a permanent audit entry.
+        This deletes your account and all its data for good.
       </p>
       <div className="flex flex-col gap-1">
         <label htmlFor="delete-confirm" className="text-sm font-medium">

@@ -13,6 +13,7 @@ import { parseLocalDate } from "@/lib/utils/date";
 import type { TransactionType } from "@/lib/queries/depos";
 import { resolveExpenseCategory, resolveIncomeSource } from "@/lib/categories";
 import { syncBudgetLinesForUser } from "@/lib/budgets";
+import { learnMerchant } from "@/lib/categorize";
 
 function revalidateMoneyPages() {
   revalidatePath("/dashboard/transactions");
@@ -63,6 +64,9 @@ export async function createTransaction(_state: FormState, formData: FormData): 
         })
         .returning();
       await recordAudit({ userId: user.id, entityType: "income", entityId: row.id, action: "create", after: row });
+      if (row.description) {
+        await learnMerchant(user.id, "income", { originalDescription: null, description: row.description, categoryName: source.name });
+      }
       break;
     }
     case "expense": {
@@ -88,6 +92,9 @@ export async function createTransaction(_state: FormState, formData: FormData): 
         })
         .returning();
       await recordAudit({ userId: user.id, entityType: "expense", entityId: row.id, action: "create", after: row });
+      if (row.description) {
+        await learnMerchant(user.id, "expense", { originalDescription: null, description: row.description, categoryName: category.name });
+      }
       break;
     }
     case "transfer": {
