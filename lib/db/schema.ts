@@ -59,7 +59,9 @@ export const depoKindEnum = pgEnum("depo_kind", [
 export const users = pgTable("users", {
   id: uuid("id").defaultRandom().primaryKey(),
   email: text("email").notNull(),
-  passwordHash: text("password_hash").notNull(),
+  emailVerified: boolean("email_verified").notNull().default(false),
+  image: text("image"),
+  twoFactorEnabled: boolean("two_factor_enabled").notNull().default(false),
   name: text("name").notNull(),
   currency: text("currency").notNull().default("TT$"),
   savingsRate: numeric("savings_rate", { precision: 4, scale: 3 }).notNull().default("0.20"),
@@ -67,17 +69,66 @@ export const users = pgTable("users", {
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 }, (t) => [uniqueIndex("users_email_idx").on(t.email)]);
 
-export const sessions = pgTable("sessions", {
+// Better Auth tables. Property names must match Better Auth's field names; columns stay snake_case.
+export const authSessions = pgTable("auth_sessions", {
   id: uuid("id").defaultRandom().primaryKey(),
   userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
-  refreshTokenHash: text("refresh_token_hash").notNull(),
-  deviceName: text("device_name"),
-  platform: sourceEnum("platform").notNull().default("web"),
-  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-  lastUsedAt: timestamp("last_used_at", { withTimezone: true }).notNull().defaultNow(),
+  token: text("token").notNull(),
   expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
-  revokedAt: timestamp("revoked_at", { withTimezone: true }),
-}, (t) => [index("sessions_user_idx").on(t.userId)]);
+  ipAddress: text("ip_address"),
+  userAgent: text("user_agent"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => [uniqueIndex("auth_sessions_token_idx").on(t.token), index("auth_sessions_user_idx").on(t.userId)]);
+
+export const authAccounts = pgTable("auth_accounts", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  accountId: text("account_id").notNull(),
+  providerId: text("provider_id").notNull(),
+  accessToken: text("access_token"),
+  refreshToken: text("refresh_token"),
+  idToken: text("id_token"),
+  accessTokenExpiresAt: timestamp("access_token_expires_at", { withTimezone: true }),
+  refreshTokenExpiresAt: timestamp("refresh_token_expires_at", { withTimezone: true }),
+  scope: text("scope"),
+  password: text("password"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => [index("auth_accounts_user_idx").on(t.userId)]);
+
+export const authVerifications = pgTable("auth_verifications", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  identifier: text("identifier").notNull(),
+  value: text("value").notNull(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => [index("auth_verifications_identifier_idx").on(t.identifier)]);
+
+export const authTwoFactors = pgTable("auth_two_factors", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  secret: text("secret").notNull(),
+  backupCodes: text("backup_codes").notNull(),
+  verified: boolean("verified").default(true),
+  failedVerificationCount: integer("failed_verification_count").default(0),
+  lockedUntil: timestamp("locked_until", { withTimezone: true }),
+}, (t) => [index("auth_two_factors_user_idx").on(t.userId)]);
+
+export const authPasskeys = pgTable("auth_passkeys", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  name: text("name"),
+  publicKey: text("public_key").notNull(),
+  credentialID: text("credential_id").notNull(),
+  counter: integer("counter").notNull(),
+  deviceType: text("device_type").notNull(),
+  backedUp: boolean("backed_up").notNull(),
+  transports: text("transports"),
+  aaguid: text("aaguid"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+}, (t) => [index("auth_passkeys_user_idx").on(t.userId), uniqueIndex("auth_passkeys_credential_idx").on(t.credentialID)]);
 
 export const auditLogs = pgTable("audit_logs", {
   id: uuid("id").defaultRandom().primaryKey(),
@@ -307,7 +358,7 @@ export const budgetLinesRelations = relations(budgetLines, ({ one }) => ({
 }));
 
 export const usersRelations = relations(users, ({ many }) => ({
-  sessions: many(sessions),
+  sessions: many(authSessions),
   income: many(income),
   expenses: many(expenses),
   subscriptions: many(subscriptions),

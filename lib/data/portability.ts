@@ -15,7 +15,6 @@ import {
   goals,
   income,
   incomeSources,
-  sessions,
   subscriptions,
   users,
 } from "@/lib/db/schema";
@@ -486,7 +485,6 @@ export async function deleteAccount(userId: string, source: "web" | "mobile" = "
       source,
     });
 
-    await tx.update(sessions).set({ revokedAt: new Date() }).where(eq(sessions.userId, userId));
     await tx.delete(users).where(eq(users.id, userId));
   });
 }

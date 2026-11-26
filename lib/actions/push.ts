@@ -9,18 +9,13 @@ import { pushSubscriptions } from "@/lib/db/schema";
 import { requireUser } from "@/lib/auth/dal";
 import { rememberAppOrigin } from "@/lib/push/keys";
 import { sendPushToUser } from "@/lib/push/send";
+import { deviceFrom } from "@/lib/utils/device";
 import { signPushAction, TEST_PENDING_ID } from "@/lib/push/tokens";
 
 const SubscriptionSchema = z.object({
   endpoint: z.url().max(1000),
   keys: z.object({ p256dh: z.string().min(1).max(200), auth: z.string().min(1).max(100) }),
 });
-
-function deviceFrom(userAgent: string) {
-  const os = /Android/i.test(userAgent) ? "Android" : /Windows/i.test(userAgent) ? "Windows" : /Mac OS/i.test(userAgent) ? "Mac" : /Linux/i.test(userAgent) ? "Linux" : /iPhone|iPad/i.test(userAgent) ? "iOS" : "Device";
-  const browser = /Edg\//.test(userAgent) ? "Edge" : /Firefox\//.test(userAgent) ? "Firefox" : /Chrome\//.test(userAgent) ? "Chrome" : /Safari\//.test(userAgent) ? "Safari" : "browser";
-  return `${browser} on ${os}`;
-}
 
 export async function savePushSubscription(input: unknown) {
   const user = await requireUser();

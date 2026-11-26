@@ -134,6 +134,13 @@
       "when": 1795568512138,
       "tag": "0018_push_notifications",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1795655392649,
+      "tag": "0019_better_auth",
+      "breakpoints": true
     }
   ]
 }

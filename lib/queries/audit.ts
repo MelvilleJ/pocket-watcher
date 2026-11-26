@@ -1,7 +1,7 @@
 import "server-only";
-import { count, desc, eq } from "drizzle-orm";
+import { and, count, desc, eq, gt } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { auditLogs, sessions } from "@/lib/db/schema";
+import { auditLogs, authSessions } from "@/lib/db/schema";
 
 export const AUDIT_LOG_LIMIT = 300;
 
@@ -20,9 +20,16 @@ export async function listAuditLogs(userId: string) {
 
 export async function listSessions(userId: string) {
   return db
-    .select()
-    .from(sessions)
-    .where(eq(sessions.userId, userId))
-    .orderBy(desc(sessions.lastUsedAt))
+    .select({
+      id: authSessions.id,
+      userAgent: authSessions.userAgent,
+      ipAddress: authSessions.ipAddress,
+      createdAt: authSessions.createdAt,
+      updatedAt: authSessions.updatedAt,
+      expiresAt: authSessions.expiresAt,
+    })
+    .from(authSessions)
+    .where(and(eq(authSessions.userId, userId), gt(authSessions.expiresAt, new Date())))
+    .orderBy(desc(authSessions.updatedAt))
     .limit(50);
 }

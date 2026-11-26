@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth/dal";
-import { destroyWebSession } from "@/lib/auth/session";
 import { deleteAccount } from "@/lib/data/portability";
 
 export async function DELETE() {
@@ -14,7 +13,10 @@ export async function DELETE() {
     return NextResponse.json({ error: "Deletion failed. Your data is untouched. Try again." }, { status: 500 });
   }
 
-  // The session row is already gone; this only clears the cookie.
-  await destroyWebSession();
-  return NextResponse.json({ ok: true });
+  // The session row went with the account; this only clears the browser's cookies.
+  const response = NextResponse.json({ ok: true });
+  for (const name of ["better-auth.session_token", "better-auth.session_data", "__Secure-better-auth.session_token", "__Secure-better-auth.session_data"]) {
+    response.cookies.delete(name);
+  }
+  return response;
 }

@@ -1,20 +1,49 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState } from "react";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { AuthShell } from "@/components/auth-shell";
 import { MotionButton } from "@/components/motion-ui";
-import { signup } from "@/lib/actions/auth";
+import { authClient } from "@/lib/auth/client";
+import { SignupSchema, type AuthFormState } from "@/lib/validation/auth";
 
 export default function SignupPage() {
-  const [state, action, pending] = useActionState(signup, undefined);
+  const router = useRouter();
+  const [state, setState] = useState<AuthFormState>(undefined);
+  const [pending, setPending] = useState(false);
+
+  async function action(formData: FormData) {
+    const validated = SignupSchema.safeParse(Object.fromEntries(formData));
+    if (!validated.success) {
+      setState({ errors: validated.error.flatten().fieldErrors });
+      return;
+    }
+    setPending(true);
+    const { error } = await authClient.signUp.email(validated.data);
+    setPending(false);
+    if (error) {
+      setState({
+        message: error.status === 422 ? "An account with this email already exists." : (error.message ?? "Couldn't create your account."),
+      });
+      return;
+    }
+    router.replace("/dashboard");
+    router.refresh();
+  }
 
   return (
     <AuthShell
       title="Create your account"
       description="Track every depo, lock a budget each month, and see when your debts will be paid off."
     >
-      <form action={action} className="mt-8 flex flex-col gap-4">
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          action(new FormData(e.currentTarget));
+        }}
+        className="mt-8 flex flex-col gap-4"
+      >
         <div className="flex flex-col gap-2">
           <label htmlFor="name" className="auth-label">Your name</label>
           <input id="name" name="name" autoComplete="name" placeholder="Your name" required />

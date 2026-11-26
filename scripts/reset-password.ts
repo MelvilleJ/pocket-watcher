@@ -1,9 +1,9 @@
 import bcrypt from "bcryptjs";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { users } from "@/lib/db/schema";
+import { authAccounts, users } from "@/lib/db/schema";
 
-// bcryptjs directly (not lib/auth/password.ts) since that file is marked "server-only" for Next.js.
+// Better Auth is configured to hash with bcrypt, so a bcrypt hash written here signs in normally.
 function hashPassword(password: string) {
   return bcrypt.hash(password, 12);
 }
@@ -19,15 +19,18 @@ async function main() {
 
   const passwordHash = await hashPassword(password);
 
-  const [updated] = await db
-    .update(users)
-    .set({ passwordHash })
-    .where(eq(users.email, email.toLowerCase()))
-    .returning({ id: users.id });
-
-  if (!updated) {
+  const [user] = await db.select({ id: users.id }).from(users).where(eq(users.email, email.toLowerCase())).limit(1);
+  if (!user) {
     console.error(`No user found with email ${email}`);
     process.exit(1);
+  }
+
+  const credential = and(eq(authAccounts.userId, user.id), eq(authAccounts.providerId, "credential"));
+  const [existing] = await db.select({ id: authAccounts.id }).from(authAccounts).where(credential).limit(1);
+  if (existing) {
+    await db.update(authAccounts).set({ password: passwordHash, updatedAt: new Date() }).where(credential);
+  } else {
+    await db.insert(authAccounts).values({ userId: user.id, accountId: user.id, providerId: "credential", password: passwordHash });
   }
 
   console.log(`Password reset for ${email}`);

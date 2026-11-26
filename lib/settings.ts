@@ -2,7 +2,7 @@ import "server-only";
 import { and, eq } from "drizzle-orm";
 import type * as z from "zod";
 import { db } from "@/lib/db";
-import { sessions, users } from "@/lib/db/schema";
+import { authSessions, users } from "@/lib/db/schema";
 import { recordAudit } from "@/lib/audit";
 import type { SettingsSchema } from "@/lib/validation/entities";
 
@@ -35,8 +35,5 @@ export async function updateUserSettings(
 }
 
 export async function revokeUserSession(userId: string, sessionId: string) {
-  await db
-    .update(sessions)
-    .set({ revokedAt: new Date() })
-    .where(and(eq(sessions.id, sessionId), eq(sessions.userId, userId)));
+  await db.delete(authSessions).where(and(eq(authSessions.id, sessionId), eq(authSessions.userId, userId)));
 }

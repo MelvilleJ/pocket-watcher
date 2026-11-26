@@ -3,6 +3,7 @@ import { logout } from "@/lib/actions/auth";
 import { DashboardNav } from "@/components/dashboard-nav";
 import { MotionButton, PageTransition } from "@/components/motion-ui";
 import { ServiceWorkerRegistrar } from "@/components/service-worker";
+import { AppLock } from "@/components/app-lock";
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const user = await requireUser();
@@ -22,6 +23,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
         }
       />
       <ServiceWorkerRegistrar />
+      <AppLock />
       <PageTransition>{children}</PageTransition>
     </div>
   );
