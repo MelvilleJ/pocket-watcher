@@ -4,16 +4,14 @@ import { authPasskeys, users } from "@/lib/db/schema";
 import { getSession, requireUser } from "@/lib/auth/dal";
 import { listSessions } from "@/lib/queries/audit";
 import { revokeSession } from "@/lib/actions/settings";
-import { getSmtpSettings, isServerOwner } from "@/lib/email/sender";
 import { deviceFrom } from "@/lib/utils/device";
 import { StackedItem, StackedList } from "@/components/stacked-list";
 import { DeleteAccountButton, ImportDataButton } from "@/components/data-tools";
 import { SecurityCard } from "@/components/settings/security-card";
-import { EmailSendingCard } from "@/components/settings/email-sending-card";
 
 export async function DataSection() {
   const user = await requireUser();
-  const [sessions, current, passkeys, [account], owner] = await Promise.all([
+  const [sessions, current, passkeys, [account]] = await Promise.all([
     listSessions(user.id),
     getSession(),
     db
@@ -21,9 +19,7 @@ export async function DataSection() {
       .from(authPasskeys)
       .where(eq(authPasskeys.userId, user.id)),
     db.select({ twoFactorEnabled: users.twoFactorEnabled }).from(users).where(eq(users.id, user.id)).limit(1),
-    isServerOwner(user.id),
   ]);
-  const smtp = owner ? await getSmtpSettings() : null;
   const currentId = current?.session.id;
 
   return (
@@ -64,8 +60,6 @@ export async function DataSection() {
           ))}
         </StackedList>
       </section>
-
-      {owner && <EmailSendingCard settings={smtp} />}
 
       <section className="rounded-xl border border-black/10 dark:border-white/10 bg-white dark:bg-zinc-950 p-5">
         <h2 className="mb-1 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Your data</h2>
