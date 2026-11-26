@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { authPasskeys, users } from "@/lib/db/schema";
+import { authPasskeys } from "@/lib/db/schema";
 import { getSession, requireUser } from "@/lib/auth/dal";
 import { listSessions } from "@/lib/queries/audit";
 import { revokeSession } from "@/lib/actions/settings";
@@ -11,14 +11,13 @@ import { SecurityCard } from "@/components/settings/security-card";
 
 export async function DataSection() {
   const user = await requireUser();
-  const [sessions, current, passkeys, [account]] = await Promise.all([
+  const [sessions, current, passkeys] = await Promise.all([
     listSessions(user.id),
     getSession(),
     db
       .select({ id: authPasskeys.id, name: authPasskeys.name, createdAt: authPasskeys.createdAt })
       .from(authPasskeys)
       .where(eq(authPasskeys.userId, user.id)),
-    db.select({ twoFactorEnabled: users.twoFactorEnabled }).from(users).where(eq(users.id, user.id)).limit(1),
   ]);
   const currentId = current?.session.id;
 
@@ -26,7 +25,6 @@ export async function DataSection() {
     <div className="flex flex-col gap-6">
       <SecurityCard
         passkeys={passkeys.map((p) => ({ ...p, createdAt: p.createdAt?.toISOString() ?? null }))}
-        twoFactorEnabled={Boolean(account?.twoFactorEnabled)}
       />
 
       <section className="rounded-xl border border-black/10 dark:border-white/10 bg-white dark:bg-zinc-950">

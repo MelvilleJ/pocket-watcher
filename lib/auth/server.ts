@@ -1,13 +1,12 @@
 import "server-only";
 import { headers } from "next/headers";
-import bcrypt from "bcryptjs";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { nextCookies } from "better-auth/next-js";
-import { emailOTP, twoFactor } from "better-auth/plugins";
+import { emailOTP } from "better-auth/plugins";
 import { passkey } from "@better-auth/passkey";
 import { db } from "@/lib/db";
-import { authAccounts, authPasskeys, authSessions, authTwoFactors, authVerifications, users } from "@/lib/db/schema";
+import { authAccounts, authPasskeys, authSessions, authVerifications, users } from "@/lib/db/schema";
 import { seedDefaultsForUser } from "@/lib/db/seed-defaults";
 import { sendEmail } from "@/lib/email/sender";
 
@@ -30,26 +29,16 @@ function createAuth(origin: string) {
         session: authSessions,
         account: authAccounts,
         verification: authVerifications,
-        twoFactor: authTwoFactors,
         passkey: authPasskeys,
       },
     }),
     advanced: { database: { generateId: false } },
-    emailAndPassword: {
-      enabled: true,
-      minPasswordLength: 8,
-      // Accounts created before Better Auth have bcrypt hashes, so new ones use bcrypt too.
-      password: {
-        hash: (password) => bcrypt.hash(password, 12),
-        verify: ({ password, hash }) => bcrypt.compare(password, hash),
-      },
-    },
     databaseHooks: {
       user: { create: { after: async (user) => void (await seedDefaultsForUser(user.id)) } },
     },
     plugins: [
+      // Passwordless: an emailed code both signs people in and creates new accounts (with the name they gave).
       emailOTP({
-        disableSignUp: true,
         expiresIn: 600,
         async sendVerificationOTP({ email, otp, type }) {
           await sendEmail({
@@ -59,7 +48,6 @@ function createAuth(origin: string) {
           });
         },
       }),
-      twoFactor({ issuer: "Pocket Watcher" }),
       passkey({ rpID: new URL(origin).hostname, rpName: "Pocket Watcher", origin }),
       nextCookies(),
     ],
