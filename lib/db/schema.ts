@@ -61,7 +61,6 @@ export const users = pgTable("users", {
   email: text("email").notNull(),
   emailVerified: boolean("email_verified").notNull().default(false),
   image: text("image"),
-  twoFactorEnabled: boolean("two_factor_enabled").notNull().default(false),
   name: text("name").notNull(),
   currency: text("currency").notNull().default("TT$"),
   savingsRate: numeric("savings_rate", { precision: 4, scale: 3 }).notNull().default("0.20"),
@@ -105,16 +104,6 @@ export const authVerifications = pgTable("auth_verifications", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 }, (t) => [index("auth_verifications_identifier_idx").on(t.identifier)]);
-
-export const authTwoFactors = pgTable("auth_two_factors", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
-  secret: text("secret").notNull(),
-  backupCodes: text("backup_codes").notNull(),
-  verified: boolean("verified").default(true),
-  failedVerificationCount: integer("failed_verification_count").default(0),
-  lockedUntil: timestamp("locked_until", { withTimezone: true }),
-}, (t) => [index("auth_two_factors_user_idx").on(t.userId)]);
 
 export const authPasskeys = pgTable("auth_passkeys", {
   id: uuid("id").defaultRandom().primaryKey(),

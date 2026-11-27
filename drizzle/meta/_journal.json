@@ -148,6 +148,13 @@
       "when": 1795655965672,
       "tag": "0020_drop_legacy_sessions",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1795661057824,
+      "tag": "0021_remove_passwords_and_2fa",
+      "breakpoints": true
     }
   ]
 }
