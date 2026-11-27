@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { BrandMark } from "@/components/brand-mark";
 import { authClient } from "@/lib/auth/client";
 import { logout } from "@/lib/actions/auth";
 
@@ -30,19 +31,38 @@ function awayTooLong() {
 // Unlocking signs in again with a passkey, so the server, not just this page, checks the fingerprint.
 export function AppLock() {
   const [locked, setLocked] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
+  const [failed, setFailed] = useState(false);
+  const busy = useRef(false);
+
+  const unlock = useCallback(async () => {
+    if (busy.current) return;
+    busy.current = true;
+    setFailed(false);
+    const result = await authClient.signIn.passkey().catch(() => null);
+    busy.current = false;
+    if (!result || result.error) {
+      setFailed(true);
+      return;
+    }
+    markActive();
+    setLocked(false);
+  }, []);
+
+  const lock = useCallback(() => {
+    setLocked(true);
+    unlock();
+  }, [unlock]);
 
   useEffect(() => {
     if (read(APP_LOCK_KEY) !== "on") return;
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    if (awayTooLong()) setLocked(true);
+    if (awayTooLong()) lock();
     else markActive();
 
     const onVisibility = () => {
       if (read(APP_LOCK_KEY) !== "on") return;
       if (document.visibilityState === "hidden") markActive();
-      else if (awayTooLong()) setLocked(true);
+      else if (awayTooLong()) lock();
       else markActive();
     };
     const heartbeat = setInterval(() => document.visibilityState === "visible" && markActive(), 30_000);
@@ -51,53 +71,28 @@ export function AppLock() {
       clearInterval(heartbeat);
       document.removeEventListener("visibilitychange", onVisibility);
     };
-  }, []);
-
-  async function unlock() {
-    setError(null);
-    setBusy(true);
-    const result = await authClient.signIn.passkey().catch(() => null);
-    setBusy(false);
-    if (!result || result.error) {
-      setError("That didn't work. Try again, or sign in with your password.");
-      return;
-    }
-    markActive();
-    setLocked(false);
-  }
+  }, [lock]);
 
   if (!locked) return null;
 
+  // Some browsers only allow the fingerprint prompt after a tap, so tapping the logo retries.
   return (
     <div
       role="dialog"
       aria-modal="true"
-      aria-label="Pocket Watcher is locked"
-      className="fixed inset-0 z-[100] flex flex-col items-center justify-center gap-5 bg-[color:var(--background)] p-6 text-center"
+      aria-label="Unlock Pocket Watcher"
+      className="fixed inset-0 z-[100] flex flex-col items-center justify-center gap-8 bg-[color:var(--background)] p-6"
     >
-      <svg viewBox="0 0 24 24" className="h-10 w-10 text-[color:var(--muted)]" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true">
-        <rect x="5" y="11" width="14" height="10" rx="2" />
-        <path d="M8 11V8a4 4 0 0 1 8 0v3" />
-      </svg>
-      <div>
-        <p className="text-lg font-semibold">Pocket Watcher is locked</p>
-        <p className="text-sm text-[color:var(--muted)]">Use your fingerprint or face to continue.</p>
-      </div>
-      <button
-        type="button"
-        onClick={unlock}
-        disabled={busy}
-        autoFocus
-        className="inline-flex min-h-[44px] items-center rounded-md bg-zinc-900 px-6 py-2 text-sm font-medium text-white disabled:opacity-60 dark:bg-zinc-50 dark:text-zinc-900"
-      >
-        {busy ? "Waiting..." : "Unlock"}
+      <button type="button" onClick={unlock} aria-label="Unlock with fingerprint or face" className="rounded-2xl p-4">
+        <BrandMark className="h-20 w-20" />
       </button>
-      {error && <p className="max-w-xs text-sm text-red-600">{error}</p>}
-      <form action={logout}>
-        <button type="submit" className="text-sm font-medium text-[color:var(--muted)] hover:underline">
-          Sign out instead
-        </button>
-      </form>
+      {failed && (
+        <form action={logout} className="absolute bottom-10">
+          <button type="submit" className="text-sm font-medium text-[color:var(--muted)] hover:underline">
+            Sign out
+          </button>
+        </form>
+      )}
     </div>
   );
 }
